@@ -13,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var Ca_cert_file string = "config/ca.crt"
+
 func Cacerts(c *gin.Context) {
 	c.Header("Content-Type", "application/json; charset=UTF-8")
+	//TODO: make a request to the Nebula CA service to get the certificate
 }

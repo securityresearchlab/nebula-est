@@ -46,7 +46,7 @@ paths:
               $ref: '#/components/schemas/hostname'
         required: true
       responses:
-        "200":
+        "201":
           description: "Successful operation: valid hostname"
           headers:
             Location:
@@ -56,14 +56,6 @@ paths:
               schema:
                 type: string
                 format: url
-          content:
-            application/json:
-              schema:
-                type: integer
-                description: "A random integer, to be encrypted for the Nebula Private\
-                  \ key Proof of Possession"
-                format: int64
-                x-content-type: application/json
         "400":
           description: Invalid hostname supplied
           content:
@@ -86,7 +78,7 @@ paths:
                   \ exists. If you want to re-enroll, please visit https://nebula_est/ncsr/{hostname}/reenroll"
     servers:
     - url: http://nebula_est/
-  /ncsr/{hostname}:
+  /ncsr/:hostname:
     get:
       tags:
       - ncsr
@@ -122,7 +114,7 @@ paths:
                 message: "Not found. Could not found an open Nebula CSR application\
                   \ for the specified hostname. If you want to enroll, provide your\
                   \ hostname to http://nebula_est//ncsr"
-  /ncsr/{hostname}/enroll:
+  /ncsr/:hostname/enroll:
     post:
       tags:
       - ncsr
@@ -157,7 +149,7 @@ paths:
                 $ref: '#/components/schemas/NebulaCSRResponse'
         "400":
           description: "Either POP is not validated or absent, or Public Key is absent,\
-            \ or serverkeygen/rename/rekey fields are true"
+            \ or serverkeygen/rekey fields are true"
           content:
             application/json:
               schema:
@@ -186,15 +178,15 @@ paths:
                 code: 409
                 message: "Conflict. This hostname has already enrolled. If you want\
                   \ to re-enroll, please visit https://nebula_est/ncsr/{hostname}/reenroll"
-  /ncsr/{hostname}/reenroll:
+  /ncsr/:hostname/reenroll:
     post:
       tags:
       - ncsr
       summary: Send a Nebula CSR to re-enroll
       description: "Send a Nebula CSR for re-enrollment, which can comprise the rekey\
-        \ falg se to tru and the new client-generated Nebula Public key to be signed\
+        \ flag set to true and the new client-generated Nebula Public key to be signed\
         \ for re-enrollment or the serverkeygen field set to true for server-side\
-        \ key regeneration and the rename flag to true if there is a change in hostname"
+        \ key regeneration"
       operationId: reenroll
       parameters:
       - name: hostname
@@ -232,7 +224,7 @@ paths:
                   \ and Public key is absent"
         "403":
           description: The hostname of the applicant (the one in the Nebula CSR) is
-            different from the one in the URL and the rename field is false or absent.
+            different from the one in the URL.
           content:
             application/json:
               schema:
@@ -240,7 +232,7 @@ paths:
               example:
                 code: 403
                 message: Unhautorized. The hostname in the URL and the one in the
-                  Nebula CSR are different and the rename field is false or absent.
+                  Nebula CSR are different.
         "404":
           description: Not Found
           content:
@@ -252,7 +244,19 @@ paths:
                 message: "Not found. Could not found an open Nebula CSR application\
                   \ for the specified hostname. If you want to enroll, provide your\
                   \ hostname to http://nebula_est//ncsr"
-  /ncsr/{hostname}/serverkeygen:
+        "409":
+          description: This hostname has not yet finished enrolling.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 409
+                message: "Conflict. This hostname has not yet finished enrolling. If you want\
+                  \ to do so, please visit https://nebula_est/ncsr/{hostname}/enroll"
+  /cacerts:
+        
+  /ncsr/:hostname/serverkeygen:
     post:
       tags:
       - ncsr
@@ -285,8 +289,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/NebulaCSRResponse'
         "400":
-          description: Either serverkeygen is false or Public key is present or /rename/rekey
-            fields are true
+          description: Either serverkeygen is false or Public key is present or rekey
+            field is true
           content:
             application/json:
               schema:
@@ -600,8 +604,6 @@ components:
       type: object
       properties:
         serverKeygen:
-          type: boolean
-        rename:
           type: boolean
         rekey:
           type: boolean
