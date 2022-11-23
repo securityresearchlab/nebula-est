@@ -12,20 +12,19 @@ import (
 	"github.com/slackhq/nebula/cert"
 )
 
-type NebulaCSRStatus string
+type NebulaCsrStatus string
 
 // List of NebulaCSRStatus
 
 const (
-	PENDING   NebulaCSRStatus = "Pending"
-	COMPLETED NebulaCSRStatus = "Completed"
-	EXPIRED   NebulaCSRStatus = "Expired"
+	PENDING   NebulaCsrStatus = "Pending"
+	COMPLETED NebulaCsrStatus = "Completed"
+	EXPIRED   NebulaCsrStatus = "Expired"
 )
 
 /*
 *	A Nebula Certificate Signing Request. Contains:
   - serverKeygen: indicates if the Nebula key pair has to be generated on the server or not. False if empty
-  - rename: used in re-enrollment CSRs. Indicates if the hostname has to be changed on the new Nebula certificate. False if empty
   - rekey: used in re-enrollment CSRs. Indicates if the Nebula key pair has to be regenerated for the new Nebula certificate. False if empty
   - hostname: the hostname of the requesting client. Required
   - publicKey: byte stream indicating the client-generated publicKey. Can be omitted if serverKeygen is true
@@ -33,8 +32,6 @@ const (
 */
 type NebulaCsr struct {
 	ServerKeygen bool `json:"serverKeygen,omitempty"`
-
-	Rename bool `json:"rename,omitempty"`
 
 	Rekey bool `json:"rekey,omitempty"`
 

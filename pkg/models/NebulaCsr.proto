@@ -1,0 +1,11 @@
+syntax = "proto3";
+package models;
+option go_package = "github.com/m4rkdc/nebula_est/pkg/models";
+
+message RawNebulaCsr {
+    optional bool ServerKeygen = 1;
+    optional bool Rekey = 2;
+    string Hostname = 3;
+    optional bytes PublicKey = 4;
+    optional bytes Pop = 5; 
+}
