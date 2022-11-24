@@ -7,5 +7,6 @@ message RawNebulaCsr {
     optional bool Rekey = 2;
     string Hostname = 3;
     optional bytes PublicKey = 4;
-    optional bytes Pop = 5; 
+    optional bytes Pop = 5;
+    repeated string Groups = 6;
 }

@@ -10,12 +10,118 @@
 package nest_service
 
 import (
+	"encoding/json"
+	"io"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/m4rkdc/nebula_est/pkg/models"
+	"github.com/slackhq/nebula/cert"
 )
 
-var Ca_cert_file string = "config/ca.crt"
+/*
+ * This function sends a request to the Nebula CA service for the Nebula CA certificates.
+ * The function retries to send the request after waiting Retry-After seconds
+ *
+ */
+//TODO: add retry
+func GetCaCerts() ([]cert.NebulaCertificate, error) {
+	resp, err := http.Get("http://" + Ca_service_ip + ":" + Ca_service_port + "/cacerts")
+	if err != nil {
+		return nil, err
+	}
 
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var error_response *models.ApiError
+	if json.Unmarshal(b, error_response) != nil {
+		return nil, error_response
+	}
+	var response []cert.NebulaCertificate
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+/*
+ * This function gets the Nebula CA certs from the Ca_cert_file and returns them.
+ */
+func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
+	b, err := os.ReadFile(Ca_cert_file)
+	if err != nil {
+		log.Fatalf("Error in reading file %s: %v\n", Ca_cert_file, err)
+		return nil, err
+	}
+
+	var ca_certs []cert.NebulaCertificate
+	for {
+		cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
+		if err != nil {
+			log.Fatalf("Error in unmarshaling certs: %v\n", err)
+			return nil, err
+		}
+		if cert == nil {
+			break
+		}
+		ca_certs = append(ca_certs, *cert)
+		if len(b) == 0 {
+			break
+		}
+	}
+
+	return ca_certs, nil
+}
+
+/*
+ * This function checks if the nest.Ca_cert_file exists. If not, sends a request to the CA service and
+ * creates it by filling it with the Nebula CA certificates returned.
+ */
+func CheckCaCertFile() error {
+	if _, err := os.Stat(Ca_cert_file); err != nil {
+		log.Printf("%s doesn't exist. Creating it and requesting the cert from Nebula CA service\n", Ca_cert_file)
+		ca_certs, err := GetCaCerts()
+		if err != nil {
+			log.Fatalf("There has been an error with the Cacerts request: %v", err.Error())
+			return err
+		}
+
+		for _, nc := range ca_certs {
+			b, err := nc.MarshalToPEM()
+			if err != nil {
+				log.Fatalf("There has been marshalling CA certs to PEM: %v", err.Error())
+				return err
+			}
+
+			if err = os.WriteFile(Ca_cert_file, b, 0600); err != nil {
+				log.Fatalf("There has been writing CA certs to file: %v", err.Error())
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+/*
+ * This REST endpoint returns an array of cert.NebulaCertificate to the client
+ */
 func Cacerts(c *gin.Context) {
-	c.Header("Content-Type", "application/json; charset=UTF-8")
-	//TODO: make a request to the Nebula CA service to get the certificate
+	if err := CheckCaCertFile(); err != nil {
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
+		return
+	}
+	ca_certs, err := getCaCertFromFile()
+	if err != nil {
+		log.Fatalf("There has been an error with the Cacerts request: %v", err.Error())
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
+	}
+
+	c.JSON(http.StatusOK, ca_certs)
 }

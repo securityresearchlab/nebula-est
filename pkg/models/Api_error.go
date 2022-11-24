@@ -13,3 +13,7 @@ type ApiError struct {
 
 	Message string `json:"message"`
 }
+
+func (m *ApiError) Error() string {
+	return "[Code: " + string(m.Code) + "] " + m.Message
+}

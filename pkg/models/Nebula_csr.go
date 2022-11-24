@@ -40,10 +40,14 @@ type NebulaCsr struct {
 	PublicKey []byte `json:"publicKey,omitempty"`
 
 	Pop []byte `json:"POP,omitempty"`
+
+	Groups []string `json:"Groups,omitempty"`
 }
 
 type NebulaCsrResponse struct {
 	NebulaCert cert.NebulaCertificate `json:"NebulaCert"`
+
+	NebulaPrivateKey []byte `json:"NebulaPrivateKey,omitempty"`
 
 	NebulaConf []byte `json:"NebulaConf,omitempty"`
 }

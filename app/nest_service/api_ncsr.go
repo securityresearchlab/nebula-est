@@ -12,7 +12,10 @@ package nest_service
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/ed25519"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,24 +24,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/pkg/models"
-	"github.com/slackhq/nebula/cert"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-var (
-	Hostnames_file string = "config/hostnames"
-	Log_file       string = "log/nest_service.log"
-	Service_ip     string = "localhost"
-	Service_port   string = "8080"
-)
-
-const (
-	ENROLL = iota
-	SERVERKEYGEN
-	RENROLL
-)
-
-func isValidHostname(str, filepath string) bool {
+func isValidHostname(str string, filepath string) bool {
 
 	b, err := os.ReadFile(filepath)
 	if err != nil {
@@ -110,6 +100,117 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.A
 	return 0, models.ApiError{}
 }
 
+func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
+	var path string
+	switch option {
+	case ENROLL:
+		path = "/ncsr/sign"
+	case RENROLL:
+		if csr.ServerKeygen {
+			path = "/ncsr/generate"
+		} else {
+			path = "/ncsr/sign"
+		}
+	case SERVERKEYGEN:
+		path = "/ncsr/generate"
+	}
+
+	raw_csr := models.RawNebulaCsr{
+		ServerKeygen: &csr.ServerKeygen,
+		Rekey:        &csr.Rekey,
+		Hostname:     csr.Hostname,
+		PublicKey:    csr.PublicKey,
+		Pop:          csr.Pop,
+		Groups:       csr.Groups,
+	}
+
+	b, err := protojson.Marshal(&raw_csr)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Post("http://"+Ca_service_ip+":"+Ca_service_port+path, "application/json", bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+
+	b, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var error_response *models.ApiError
+	if json.Unmarshal(b, error_response) != nil {
+		return nil, error_response
+	}
+	var response *models.CaResponse
+	err = json.Unmarshal(b, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models.NebulaCsrResponse, error) {
+	var conf_resp *models.ConfResponse
+	var err error
+	if option != RENROLL {
+		conf_resp, err = requestConf(hostname)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	csr.Groups = conf_resp.Groups
+	ca_response, err := sendCSR(csr, ENROLL)
+	if err != nil {
+		return nil, err
+	}
+
+	var csr_resp models.NebulaCsrResponse
+	csr_resp.NebulaCert = ca_response.NebulaCert
+	if option == SERVERKEYGEN {
+		csr_resp.NebulaPrivateKey = ca_response.NebulaPrivateKey
+	}
+	if option != RENROLL {
+		csr_resp.NebulaConf = conf_resp.NebulaConf
+	}
+
+	file, err := os.OpenFile("ncsr/"+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Fatalf("Could not write to file: %v", err)
+	}
+	defer file.Close()
+
+	file.WriteString(string(models.COMPLETED) + "\n")
+	file.WriteString(ca_response.NebulaCert.Details.NotAfter.String())
+	return &csr_resp, nil
+}
+
+func requestConf(hostname string) (*models.ConfResponse, error) {
+	resp, err := http.Get("http://" + Conf_service_ip + ":" + Conf_service_port + "/configs/" + hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var error_response *models.ApiError
+	if json.Unmarshal(b, error_response) != nil {
+		return nil, error_response
+	}
+	var response *models.ConfResponse
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func Enroll(c *gin.Context) {
 	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -146,7 +247,7 @@ func Enroll(c *gin.Context) {
 
 	var csr models.NebulaCsr
 
-	if err := c.BindJSON(&csr); err != nil {
+	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
 		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
@@ -158,25 +259,12 @@ func Enroll(c *gin.Context) {
 		return
 	}
 
-	//TODO: send the CSR to the Nebula CA to be signed which will return a cert.nebulaCertificate
-	var nebula_cert cert.NebulaCertificate
-
-	//TODO: send a request to the Conf service to generate this client's nebula configuration file
-	var nebula_conf []byte
-
-	var csr_resp = models.NebulaCsrResponse{
-		NebulaCert: nebula_cert,
-		NebulaConf: nebula_conf,
-	}
-
-	file, err := os.OpenFile("ncsr/"+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
+	csr_resp, err := getCSRResponse(hostname, &csr, ENROLL)
 	if err != nil {
-		log.Fatalf("Could not write to file: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		log.Printf("Internal Server Error: %v\n", err)
+		return
 	}
-	defer file.Close()
-
-	file.WriteString(string(models.COMPLETED) + "\n")
-	file.WriteString(nebula_cert.Details.NotAfter.String())
 	c.JSON(http.StatusOK, csr_resp)
 }
 
@@ -195,7 +283,7 @@ func NcsrApplication(c *gin.Context) {
 	log.Println("Nebula CSR Application received")
 
 	var hostname string = ""
-	if err := c.BindJSON(&hostname); err != nil {
+	if err := c.ShouldBindJSON(&hostname); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
 		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
@@ -325,17 +413,25 @@ func Reenroll(c *gin.Context) {
 
 	var csr models.NebulaCsr
 
-	if err := c.BindJSON(&csr); err != nil {
+	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
 		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
 	}
 
-	status_code, api_error := verifyCsr(csr, hostname, ENROLL)
+	status_code, api_error := verifyCsr(csr, hostname, RENROLL)
 	if status_code != 0 {
 		c.JSON(status_code, api_error)
 		return
 	}
+
+	csr_resp, err := getCSRResponse(hostname, &csr, RENROLL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		log.Printf("Internal Server Error: %v\n", err)
+		return
+	}
+	c.JSON(http.StatusOK, csr_resp)
 
 }
 
@@ -375,48 +471,23 @@ func Serverkeygen(c *gin.Context) {
 
 	var csr models.NebulaCsr
 
-	if err := c.BindJSON(&csr); err != nil {
+	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
 		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
 	}
 
-	if csr.Hostname != hostname {
-		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 403, Message: "Unhautorized. The hostname in the URL and the one in the Nebula CSR are different."})
-		log.Printf("Unhautorized: %v. The hostname in the URL and the one in the Nebula CSR are different.\n", err)
+	status_code, api_error := verifyCsr(csr, hostname, SERVERKEYGEN)
+	if status_code != 0 {
+		c.JSON(status_code, api_error)
 		return
 	}
 
-	if csr.Rekey {
-		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Rekey is true"})
-		log.Println("Bad Request. Rekey is true.")
-		return
-	}
-
-	if !csr.ServerKeygen {
-		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. ServerKeygen is false. If you wanted to enroll with a client-generated nebula public key, please visit https://" + Service_ip + ":" + Service_port + "/" + "/ncsr/" + hostname + "/enroll"})
-		log.Println("Bad Request. ServerKeygen is false.")
-		return
-	}
-
-	//TODO: send a request to the Nebula CA Service to generate a Nebula key pair
-	var nebula_cert cert.NebulaCertificate
-
-	//TODO: send a request to the Conf service to generate this client's nebula configuration file
-	var nebula_conf []byte
-
-	var csr_resp = models.NebulaCsrResponse{
-		NebulaCert: nebula_cert,
-		NebulaConf: nebula_conf,
-	}
-
-	file, err := os.OpenFile("ncsr/"+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
+	csr_resp, err := getCSRResponse(hostname, &csr, SERVERKEYGEN)
 	if err != nil {
-		log.Fatalf("Could not write to file: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		log.Printf("Internal Server Error: %v\n", err)
+		return
 	}
-	defer file.Close()
-
-	file.WriteString(string(models.COMPLETED) + "\n")
-	file.WriteString(nebula_cert.Details.NotAfter.String())
 	c.JSON(http.StatusOK, csr_resp)
 }

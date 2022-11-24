@@ -11,6 +11,24 @@ import (
 	"github.com/m4rkdc/nebula_est/pkg/models"
 )
 
+var (
+	Hostnames_file    string = "config/hostnames"
+	Log_file          string = "log/nest_service.log"
+	Ca_cert_file      string = "config/ca.crt"
+	Service_ip        string = "localhost"
+	Service_port      string = "8080"
+	Ca_service_ip     string = "localhost"
+	Ca_service_port   string = "5353"
+	Conf_service_ip   string = "localhost"
+	Conf_service_port string = "61616"
+)
+
+const (
+	ENROLL = iota
+	SERVERKEYGEN
+	RENROLL
+)
+
 var Service_routes = [6]models.Route{
 
 	{

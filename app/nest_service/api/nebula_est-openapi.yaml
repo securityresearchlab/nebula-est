@@ -10,7 +10,7 @@ info:
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  version: 0.1.1
+  version: 0.2.1
 externalDocs:
   description: Find out more about EST (RFC7030)
   url: https://www.rfc-editor.org/rfc/rfc7030.html
@@ -75,7 +75,7 @@ paths:
               example:
                 code: 409
                 message: "Conflict. A Nebula CSR for the hostname you provided already\
-                  \ exists. If you want to re-enroll, please visit https://nebula_est/ncsr/{hostname}/reenroll"
+                  \ exists. If you want to re-enroll, please visit https://nebula_est/ncsr/:hostname/reenroll"
     servers:
     - url: http://nebula_est/
   /ncsr/:hostname:
@@ -177,7 +177,7 @@ paths:
               example:
                 code: 409
                 message: "Conflict. This hostname has already enrolled. If you want\
-                  \ to re-enroll, please visit https://nebula_est/ncsr/{hostname}/reenroll"
+                  \ to re-enroll, please visit https://nebula_est/ncsr/:hostname/reenroll"
   /ncsr/:hostname/reenroll:
     post:
       tags:
@@ -253,8 +253,7 @@ paths:
               example:
                 code: 409
                 message: "Conflict. This hostname has not yet finished enrolling. If you want\
-                  \ to do so, please visit https://nebula_est/ncsr/{hostname}/enroll"
-  /cacerts:
+                  \ to do so, please visit https://nebula_est/ncsr/:hostname/enroll"
         
   /ncsr/:hostname/serverkeygen:
     post:
@@ -298,7 +297,7 @@ paths:
               example:
                 code: 400
                 message: "Invalid operation: Public key is present but you requested\
-                  \ a server keygen. Try sending this CSR to https://nebula_est/{hostname}/enroll"
+                  \ a server keygen. Try sending this CSR to https://nebula_est/:hostname/enroll"
         "403":
           description: The hostname of the applicant (the one in the Nebula CSR) is
             different from the one in the URL.
@@ -319,7 +318,7 @@ paths:
               example:
                 code: 409
                 message: "Conflict. This hostname has already enrolled. If you want\
-                  \ to re-enroll, please visit https://nebula_est/ncsr/{hostname}/reenroll"
+                  \ to re-enroll, please visit https://nebula_est/ncsr/:hostname/reenroll"
   /cacerts:
     get:
       tags:
@@ -336,25 +335,16 @@ paths:
                 items:
                   $ref: '#/components/schemas/NebulaCertificate'
                 x-content-type: application/json
-        "503":
-          description: Service Unavailable
-          headers:
-            Retry-After:
-              description: Amount of time in which the resource is supposed to be
-                available
-              style: simple
-              explode: false
-              schema:
-                type: integer
-                format: int64
+        "500":
+          description: Could not fetch CA certs
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
               example:
-                code: 503
-                message: Service Unavailable. Please retry after waiting the amount
-                  specified in the Retry-After header field.
+                code: 500
+                message: Internal Server Error. Could not fetch CA certs.
+
     servers:
     - url: http://nebula_est/
 components:
@@ -616,6 +606,10 @@ components:
         POP:
           type: string
           format: binary
+        Groups:
+          type: array
+          items:
+            type: string
     NebulaConfiguration:
       type: string
       format: binary
@@ -632,6 +626,9 @@ components:
       properties:
         NebulaCert:
           $ref: '#/components/schemas/NebulaCertificate'
+        NebulaPrivateKey:
+          type:
+          format: binary
         NebulaConf:
           $ref: '#/components/schemas/NebulaConfiguration'
       example:

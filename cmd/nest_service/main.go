@@ -10,29 +10,122 @@
 package main
 
 import (
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m4rkdc/nebula_est/app/nest_service"
+	nest "github.com/m4rkdc/nebula_est/app/nest_service"
+	"github.com/m4rkdc/nebula_est/pkg/models"
 )
 
-var service_ip string = "localhost"
-var service_port string = "8080"
+func getHostnames() ([]string, error) {
+	resp, err := http.Get("http://" + nest.Conf_service_ip + ":" + nest.Conf_service_port + "/hostnames")
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var error_response *models.ApiError
+	if json.Unmarshal(b, error_response) != nil {
+		return nil, error_response
+	}
+	var response []string
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func checkHostnamesFile() error {
+	if _, err := os.Stat(nest.Hostnames_file); err != nil {
+		log.Printf("%s doesn't exist. Creating it and requesting the cert from Nebula CA service\n", nest.Hostnames_file)
+		hostnames, err := getHostnames()
+		if err != nil {
+			log.Fatalf("There has been an error with the hostnames request: %v", err.Error())
+			return err
+		}
+
+		file, err := os.OpenFile(nest.Hostnames_file, os.O_WRONLY|os.O_TRUNC, 0600)
+		if err != nil {
+			log.Fatalf("Could not write to file: %v", err)
+			return err
+		}
+		defer file.Close()
+
+		for _, h := range hostnames {
+			file.WriteString(h + "\n")
+		}
+	}
+	return nil
+}
 
 func main() {
-	log.Printf("Server started")
-	val, ok := os.LookupEnv("SERVICE_IP")
-	if ok {
-		service_ip = val
-	}
-	val, ok = os.LookupEnv("SERVICE_PORT")
-	if ok {
-		service_port = val
+	if val, ok := os.LookupEnv("LOG_FILE"); ok {
+		nest.Log_file = val
 	}
 
+	logF, err := os.OpenFile(nest.Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Error opening file: %v. Exiting\n", err)
+		os.Exit(1)
+	}
+
+	log.SetOutput(logF)
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	log.Println("Service started")
+
+	if val, ok := os.LookupEnv("SERVICE_IP"); ok {
+		nest.Service_ip = val
+	}
+	if val, ok := os.LookupEnv("SERVICE_PORT"); ok {
+
+		nest.Service_port = val
+	}
+	if val, ok := os.LookupEnv("HOSTNAMES_FILE"); ok {
+		nest.Hostnames_file = val
+	}
+	if val, ok := os.LookupEnv("CA_CERT_FILE"); ok {
+		nest.Ca_cert_file = val
+	}
+
+	if err := nest.CheckCaCertFile(); err != nil {
+		log.Fatalln("Could not contact the CA service")
+		os.Exit(2)
+	} else {
+		log.Printf("%s already exists", nest.Ca_cert_file)
+	}
+	if err := checkHostnamesFile(); err != nil {
+		log.Fatalln("Could not contact the Conf service")
+		os.Exit(3)
+	} else {
+		log.Printf("%s already exists", nest.Hostnames_file)
+	}
+
+	if _, err := os.Stat("/ncsr"); err != nil {
+		log.Println("/ncsr directory doesn't exist. Creating it")
+		if err := os.Mkdir("/ncsr", 0700); err != nil {
+			log.Println("Couldn't create /ncsr directory")
+			os.Exit(4)
+		}
+	} else {
+		log.Println("/ncsr directory already exists")
+	}
+
+	log.Println("Service setup finished")
+	logF.Close()
+
+	//TODO: make two routers and add TLS
 	router := gin.Default()
-	for _, r := range nest_service.Service_routes {
+	for _, r := range nest.Service_routes {
 		switch r.Method {
 		case "GET":
 			router.GET(r.Pattern, r.HandlerFunc)
@@ -40,5 +133,7 @@ func main() {
 			router.POST(r.Pattern, r.HandlerFunc)
 		}
 	}
-	router.Run(service_ip + ":" + service_port)
+
+	go router.Run(nest.Service_ip + ":" + nest.Service_port)
+	//router.RunListener() per aggiungere tls
 }
