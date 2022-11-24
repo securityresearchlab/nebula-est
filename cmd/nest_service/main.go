@@ -11,6 +11,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -68,20 +69,24 @@ func checkHostnamesFile() error {
 	return nil
 }
 
+func setupLogger(router *gin.Engine) error {
+	logF, err := os.OpenFile(nest.Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+
+	gin.ForceConsoleColor()
+	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		Output: io.MultiWriter(logF, os.Stdout),
+	}))
+	return nil
+}
+
 func main() {
 	if val, ok := os.LookupEnv("LOG_FILE"); ok {
 		nest.Log_file = val
 	}
-
-	logF, err := os.OpenFile(nest.Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v. Exiting\n", err)
-		os.Exit(1)
-	}
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Service started")
+	fmt.Printf("Service started\n\n")
 
 	if val, ok := os.LookupEnv("SERVICE_IP"); ok {
 		nest.Service_ip = val
@@ -98,33 +103,27 @@ func main() {
 	}
 
 	if err := nest.CheckCaCertFile(); err != nil {
-		log.Fatalln("Could not contact the CA service")
+		fmt.Println("Could not contact the CA service")
 		os.Exit(2)
-	} else {
-		log.Printf("%s already exists", nest.Ca_cert_file)
 	}
 	if err := checkHostnamesFile(); err != nil {
-		log.Fatalln("Could not contact the Conf service")
+		fmt.Println("Could not contact the Conf service")
 		os.Exit(3)
-	} else {
-		log.Printf("%s already exists", nest.Hostnames_file)
 	}
 
 	if _, err := os.Stat("/ncsr"); err != nil {
-		log.Println("/ncsr directory doesn't exist. Creating it")
 		if err := os.Mkdir("/ncsr", 0700); err != nil {
-			log.Println("Couldn't create /ncsr directory")
+			fmt.Printf("Couldn't create /ncsr directory")
 			os.Exit(4)
 		}
-	} else {
-		log.Println("/ncsr directory already exists")
 	}
 
-	log.Println("Service setup finished")
-	logF.Close()
+	fmt.Println("Service setup finished")
 
 	//TODO: make two routers and add TLS
 	router := gin.Default()
+	setupLogger(router)
+
 	for _, r := range nest.Service_routes {
 		switch r.Method {
 		case "GET":

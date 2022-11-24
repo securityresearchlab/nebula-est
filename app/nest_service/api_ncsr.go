@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -44,23 +45,19 @@ func isValidHostname(str string, filepath string) bool {
 
 func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.ApiError) {
 	if csr.Hostname != hostname {
-		log.Printf("Unhautorized. The hostname in the URL and the one in the Nebula CSR are different.\n")
 		return http.StatusUnauthorized, models.ApiError{Code: 403, Message: "Unhautorized. The hostname in the URL and the one in the Nebula CSR are different."}
 	}
 	if option != RENROLL && csr.Rekey {
-		log.Println("Bad Request. Rekey is true.")
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Rekey is true"}
 	}
 
 	switch option {
 	case ENROLL:
 		if csr.ServerKeygen {
-			log.Println("Bad Request. ServerKeygen is true.")
 			return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. ServerKeygen is true. If you wanted to enroll with a server keygen, please visit https://" + Service_ip + ":" + Service_port + "/" + "/ncsr/" + hostname + "/serverkeygen"}
 		}
 	case SERVERKEYGEN:
 		if !csr.ServerKeygen {
-			log.Println("Bad Request. ServerKeygen is false.")
 			return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. ServerKeygen is false. If you wanted to enroll with a client-generated nebula public key, please visit https://" + Service_ip + ":" + Service_port + "/" + "/ncsr/" + hostname + "/enroll"}
 		}
 		return 0, models.ApiError{}
@@ -71,11 +68,9 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.A
 	}
 
 	if len(csr.PublicKey) == 0 {
-		log.Println("Bad Request. Public key is not provided.")
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Public key is not provided"}
 	}
 	if len(csr.Pop) == 0 {
-		log.Println("Bad Request. Proof of Possession is not provided.")
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Proof of Possession is not provided"}
 	}
 
@@ -89,12 +84,10 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.A
 	b, err := proto.Marshal(&csr_ver)
 
 	if err != nil {
-		log.Fatalln("Failed to encode Nebula CSR:", err)
 		return http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()}
 	}
 
 	if !ed25519.Verify(csr.PublicKey, b, csr.Pop) {
-		log.Println("Bad Request. Proof of Possession is not valid.")
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Proof of Possession is not valid"}
 	}
 	return 0, models.ApiError{}
@@ -178,7 +171,8 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 
 	file, err := os.OpenFile("ncsr/"+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalf("Could not write to file: %v", err)
+		fmt.Printf("Could not write to file: %v\n", err)
+		panic(err)
 	}
 	defer file.Close()
 
@@ -212,18 +206,7 @@ func requestConf(hostname string) (*models.ConfResponse, error) {
 }
 
 func Enroll(c *gin.Context) {
-	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v\n", err)
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		panic(err)
-	}
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	defer logF.Close()
-
-	log.Println("Nebula Enroll request received")
+	fmt.Println("Nebula Enroll request received")
 
 	hostname := c.Params.ByName("hostname")
 	if hostname == "" {
@@ -234,13 +217,11 @@ func Enroll(c *gin.Context) {
 
 	b, err := os.ReadFile("ncsr/" + hostname)
 	if err == nil {
-		log.Fatalf("Error opening /ncsr/"+hostname+": %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		panic(err)
 	}
 
 	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
-		log.Println("The hostname " + hostname + " has already enrolled")
 		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https:https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/reenroll"})
 		return
 	}
@@ -249,7 +230,6 @@ func Enroll(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
-		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
 	}
 
@@ -262,59 +242,41 @@ func Enroll(c *gin.Context) {
 	csr_resp, err := getCSRResponse(hostname, &csr, ENROLL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
-		log.Printf("Internal Server Error: %v\n", err)
 		return
 	}
 	c.JSON(http.StatusOK, csr_resp)
 }
 
 func NcsrApplication(c *gin.Context) {
-	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v\n", err)
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		panic(err)
-	}
-
-	defer logF.Close()
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Nebula CSR Application received")
+	fmt.Println("Nebula CSR Application received")
 
 	var hostname string = ""
 	if err := c.ShouldBindJSON(&hostname); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
-		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
 	}
 
 	if _, err := os.Stat("ncsr/" + hostname); err == nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Conflict. A Nebula CSR for the hostname you provided already exists. If you want to re-enroll, please visit https://nebula_est/ncsr/" + hostname + "/reenroll"})
-		log.Printf("Conflict: %v. Conflict. A Nebula CSR for the provided hostname already exists.\n", err)
 		return
 	}
 
 	if !isValidHostname(hostname, Hostnames_file) {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: The hostname you provided was not found in the Configuration service list"})
-		log.Printf("Bad request: %v. Hostname not found in Config service list\n", err)
 		return
 	}
 
 	if _, err := os.Stat("ncsr/" + hostname); err == nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Conflict. A Nebula CSR for the hostname you provided already exists. If you want to re-enroll, please visit https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/reenroll"})
-		log.Printf("Conflict: %v. A Nebula CSR for the provided hostname already exists.\n", err)
 		return
 	}
 
 	applicationFile, err := os.OpenFile("ncsr/"+hostname, os.O_CREATE|os.O_WRONLY, 0600)
 	if err == nil {
-		log.Fatalf("Error creating /ncsr/"+hostname+": %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		panic(err)
 	}
 	if _, err := applicationFile.WriteString(string(models.PENDING)); err != nil {
-		log.Fatalf("Could not write "+string(models.PENDING)+" status to  /ncsr/"+hostname+": %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		panic(err)
 	}
@@ -324,30 +286,17 @@ func NcsrApplication(c *gin.Context) {
 }
 
 func NcsrStatus(c *gin.Context) {
-	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v\n", err)
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		panic(err)
-	}
-
-	defer logF.Close()
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	hostname := c.Params.ByName("hostname")
 	if hostname == "" {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
-		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
 	}
 
-	log.Println("Nebula CSR Status request received for hostname: " + hostname)
+	fmt.Println("Nebula CSR Status request received for hostname: " + hostname)
 
 	file, err := os.OpenFile("ncsr/"+hostname, os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.ApiError{Code: 404, Message: "Not found. Could not find an open Nebula CSR application for the specified hostname. If you want to enroll, provide your hostname to http:" + Service_ip + ":" + Service_port + "/ncsr"})
-		log.Printf("Not found: %v Could not find an open Nebula CSR application for %s. If you want to enroll, provide your hostname to http:%s:%s/ncsr", err, hostname, Service_ip, Service_port)
 		return
 	}
 	defer file.Close()
@@ -363,7 +312,6 @@ func NcsrStatus(c *gin.Context) {
 	if len(fileLines) == 2 {
 		notAfter, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", fileLines[1])
 		if err != nil {
-			log.Fatalf("Error parsing notAfter field in file: %v\n", err)
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 			panic(err)
 		}
@@ -378,35 +326,19 @@ func NcsrStatus(c *gin.Context) {
 }
 
 func Reenroll(c *gin.Context) {
-	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v\n", err)
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		panic(err)
-	}
-
-	defer logF.Close()
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Nebula Re-enroll request received")
-
 	hostname := c.Params.ByName("hostname")
 	if hostname == "" {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
-		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
 	}
 
 	b, err := os.ReadFile("ncsr/" + hostname)
 	if err == nil {
-		log.Fatalf("Error opening /ncsr/"+hostname+": %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		panic(err)
 	}
 
 	if isPending, _ := regexp.Match(string(models.PENDING), b); isPending {
-		log.Println("The hostname " + hostname + " has not yet finished the first enrollment phase, cannot re-enroll")
 		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has not yet finished enrolling. If you want to do so, please visit https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/enroll"})
 		return
 	}
@@ -415,7 +347,6 @@ func Reenroll(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
-		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
 	}
 
@@ -428,7 +359,6 @@ func Reenroll(c *gin.Context) {
 	csr_resp, err := getCSRResponse(hostname, &csr, RENROLL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
-		log.Printf("Internal Server Error: %v\n", err)
 		return
 	}
 	c.JSON(http.StatusOK, csr_resp)
@@ -436,35 +366,21 @@ func Reenroll(c *gin.Context) {
 }
 
 func Serverkeygen(c *gin.Context) {
-	logF, err := os.OpenFile(Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("Error opening file: %v\n", err)
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		panic(err)
-	}
-
-	defer logF.Close()
-
-	log.SetOutput(logF)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Nebula Enroll request received")
+	fmt.Println("Nebula Enroll request received")
 
 	hostname := c.Params.ByName("hostname")
 	if hostname == "" {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
-		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
 	}
 
 	b, err := os.ReadFile("ncsr/" + hostname)
 	if err == nil {
-		log.Fatalf("Error opening /ncsr/"+hostname+": %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		panic(err)
 	}
 
 	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
-		log.Println("The hostname " + hostname + " has already enrolled")
 		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https:https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/reenroll"})
 		return
 	}
@@ -473,7 +389,6 @@ func Serverkeygen(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&csr); err != nil {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
-		log.Printf("Bad request: %v. No Nebula Certificate Signing Request provided\n", err)
 		return
 	}
 
@@ -486,7 +401,6 @@ func Serverkeygen(c *gin.Context) {
 	csr_resp, err := getCSRResponse(hostname, &csr, SERVERKEYGEN)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
-		log.Printf("Internal Server Error: %v\n", err)
 		return
 	}
 	c.JSON(http.StatusOK, csr_resp)

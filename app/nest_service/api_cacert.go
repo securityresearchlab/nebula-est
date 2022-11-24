@@ -12,7 +12,6 @@ package nest_service
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -57,7 +56,6 @@ func GetCaCerts() ([]cert.NebulaCertificate, error) {
 func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
 	b, err := os.ReadFile(Ca_cert_file)
 	if err != nil {
-		log.Fatalf("Error in reading file %s: %v\n", Ca_cert_file, err)
 		return nil, err
 	}
 
@@ -65,7 +63,6 @@ func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
 	for {
 		cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
 		if err != nil {
-			log.Fatalf("Error in unmarshaling certs: %v\n", err)
 			return nil, err
 		}
 		if cert == nil {
@@ -86,22 +83,18 @@ func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
  */
 func CheckCaCertFile() error {
 	if _, err := os.Stat(Ca_cert_file); err != nil {
-		log.Printf("%s doesn't exist. Creating it and requesting the cert from Nebula CA service\n", Ca_cert_file)
 		ca_certs, err := GetCaCerts()
 		if err != nil {
-			log.Fatalf("There has been an error with the Cacerts request: %v", err.Error())
 			return err
 		}
 
 		for _, nc := range ca_certs {
 			b, err := nc.MarshalToPEM()
 			if err != nil {
-				log.Fatalf("There has been marshalling CA certs to PEM: %v", err.Error())
 				return err
 			}
 
 			if err = os.WriteFile(Ca_cert_file, b, 0600); err != nil {
-				log.Fatalf("There has been writing CA certs to file: %v", err.Error())
 				return err
 			}
 		}
@@ -119,7 +112,6 @@ func Cacerts(c *gin.Context) {
 	}
 	ca_certs, err := getCaCertFromFile()
 	if err != nil {
-		log.Fatalf("There has been an error with the Cacerts request: %v", err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 	}
 
