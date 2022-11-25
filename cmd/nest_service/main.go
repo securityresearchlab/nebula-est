@@ -11,11 +11,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	nest "github.com/m4rkdc/nebula_est/app/nest_service"
@@ -82,6 +86,46 @@ func setupLogger(router *gin.Engine) error {
 	return nil
 }
 
+func isExecOwner(mode os.FileMode) bool {
+	return mode&0100 != 0
+}
+
+func setupNebula() error {
+	info, err := os.Stat(nest.Nebula_folder + "nebula")
+	if err != nil {
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nest.Nebula_folder+"nebula")
+		return err
+	}
+	if !isExecOwner(info.Mode()) {
+		os.Chmod(nest.Nebula_folder+"nebula", 0700)
+	}
+
+	cmd := exec.Command(nest.Nebula_folder+"nebula", "-config "+nest.Nebula_folder+"config.yml")
+	if err = cmd.Run(); err != nil {
+		return err
+	}
+
+	interfaces, err := net.Interfaces()
+
+	if err != nil {
+		fmt.Printf("Could'nt check information about host interfaces\n")
+		return err
+	}
+
+	var found bool = false
+	for _, i := range interfaces {
+		if strings.Contains(strings.ToLower(i.Name), "nebula") {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return nil
+	}
+	return errors.New("could not setup a nebula tunnel")
+}
+
 func main() {
 	if val, ok := os.LookupEnv("LOG_FILE"); ok {
 		nest.Log_file = val
@@ -101,6 +145,9 @@ func main() {
 	if val, ok := os.LookupEnv("CA_CERT_FILE"); ok {
 		nest.Ca_cert_file = val
 	}
+	if val, ok := os.LookupEnv("NEBULA_FOLDER"); ok {
+		nest.Nebula_folder = val
+	}
 
 	if err := nest.CheckCaCertFile(); err != nil {
 		fmt.Println("Could not contact the CA service")
@@ -118,9 +165,32 @@ func main() {
 		}
 	}
 
+	if _, err := os.Stat(nest.Nebula_folder + "nest_service.crt"); err != nil {
+		fmt.Printf("Cannot find NEST service Nebula certificate\n")
+		os.Exit(5)
+	}
+	if _, err := os.Stat(nest.Nebula_folder + "nest_service.key"); err != nil {
+		fmt.Printf("Cannot find NEST service Nebula key\n")
+		os.Exit(6)
+	}
+
+	if _, err := os.Stat(nest.Nebula_folder + "ca.crt"); err != nil {
+		fmt.Printf("Cannot find NEST Nebula CA crt\n")
+		os.Exit(7)
+	}
+
+	if _, err := os.Stat(nest.Nebula_folder + "config.yml"); err != nil {
+		fmt.Printf("Cannot find NEST Nebula config\n")
+		os.Exit(8)
+	}
+
+	if err := setupNebula(); err != nil {
+		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
+		os.Exit(9)
+	}
+
 	fmt.Println("Service setup finished")
 
-	//TODO: make two routers and add TLS
 	router := gin.Default()
 	setupLogger(router)
 
@@ -133,6 +203,5 @@ func main() {
 		}
 	}
 
-	go router.Run(nest.Service_ip + ":" + nest.Service_port)
-	//router.RunListener() per aggiungere tls
+	router.Run(nest.Service_ip + ":" + nest.Service_port)
 }

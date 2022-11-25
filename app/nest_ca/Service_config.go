@@ -9,6 +9,8 @@
 package nest_ca
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"sync"
 
 	"github.com/m4rkdc/nebula_est/pkg/models"
@@ -19,6 +21,19 @@ type NebulaIpNetwork struct {
 	sem            sync.Mutex
 	nebula_network netaddr.IPNetwork
 }
+
+var (
+	Certificates_path string = "certificates/"
+	Ca_bin            string = "config/bin/nebula-cert"
+	Ca_keys_path      string = "config/keys/"
+	Log_file          string = "log/nest_ca.log"
+	Service_ip        string = "192.168.80.2"
+	Service_port      string = "5353"
+	Ca_name           string = "NEST CA, Inc"
+	Nebula_folder     string = "config/nebula/"
+	//Network           net.IPNet = net.IPNet{IP: net.IPv4(192, 168, 100, 0), Mask: net.CIDRMask(24, 32)}
+	Network NebulaIpNetwork
+)
 
 func (net *NebulaIpNetwork) NewNebulaIpNetwork(network netaddr.IPNetwork) {
 	net.sem = sync.Mutex{}
@@ -50,17 +65,20 @@ func (net *NebulaIpNetwork) AddIpNetwork() netaddr.IPAddress {
 	return net.nebula_network.Address()
 }
 
-var (
-	Certificates_path string = "certificates/"
-	Ca_bin            string = "config/bin/nebula-cert"
-	Ca_keys_path      string = "config/keys/"
-	Log_file          string = "log/nest_ca.log"
-	Service_ip        string = "localhost"
-	Service_port      string = "5353"
-	Ca_name           string = "NEST CA, Inc"
-	//Network           net.IPNet = net.IPNet{IP: net.IPv4(192, 168, 100, 0), Mask: net.CIDRMask(24, 32)}
-	Network NebulaIpNetwork
-)
+func SetupTLS(caCertPool *x509.CertPool) *tls.Config {
+	var tls_config = tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		MaxVersion:               tls.VersionTLS13,
+		PreferServerCipherSuites: true,
+		ClientAuth:               tls.RequireAndVerifyClientCert,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		},
+		ClientCAs: caCertPool,
+	}
+	return &tls_config
+}
 
 var Ca_routes = [3]models.Route{
 	{
