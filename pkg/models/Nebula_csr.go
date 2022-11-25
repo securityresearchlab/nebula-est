@@ -17,6 +17,12 @@ type NebulaCsrStatus string
 // List of NebulaCSRStatus
 
 const (
+	ENROLL = iota
+	SERVERKEYGEN
+	RENROLL
+)
+
+const (
 	PENDING   NebulaCsrStatus = "Pending"
 	COMPLETED NebulaCsrStatus = "Completed"
 	EXPIRED   NebulaCsrStatus = "Expired"

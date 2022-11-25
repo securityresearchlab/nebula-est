@@ -23,12 +23,6 @@ var (
 	Conf_service_port string = "61616"
 )
 
-const (
-	ENROLL = iota
-	SERVERKEYGEN
-	RENROLL
-)
-
 var Service_routes = [6]models.Route{
 
 	{

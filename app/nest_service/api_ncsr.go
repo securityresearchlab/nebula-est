@@ -13,11 +13,9 @@ package nest_service
 import (
 	"bufio"
 	"bytes"
-	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -26,7 +24,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/pkg/models"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func isValidHostname(str string, filepath string) bool {
@@ -47,21 +44,21 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.A
 	if csr.Hostname != hostname {
 		return http.StatusUnauthorized, models.ApiError{Code: 403, Message: "Unhautorized. The hostname in the URL and the one in the Nebula CSR are different."}
 	}
-	if option != RENROLL && csr.Rekey {
+	if option != models.RENROLL && csr.Rekey {
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Rekey is true"}
 	}
 
 	switch option {
-	case ENROLL:
+	case models.ENROLL:
 		if csr.ServerKeygen {
 			return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. ServerKeygen is true. If you wanted to enroll with a server keygen, please visit https://" + Service_ip + ":" + Service_port + "/" + "/ncsr/" + hostname + "/serverkeygen"}
 		}
-	case SERVERKEYGEN:
+	case models.SERVERKEYGEN:
 		if !csr.ServerKeygen {
 			return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. ServerKeygen is false. If you wanted to enroll with a client-generated nebula public key, please visit https://" + Service_ip + ":" + Service_port + "/" + "/ncsr/" + hostname + "/enroll"}
 		}
 		return 0, models.ApiError{}
-	case RENROLL:
+	case models.RENROLL:
 		if !csr.Rekey || (csr.Rekey && csr.ServerKeygen) {
 			return 0, models.ApiError{}
 		}
@@ -74,37 +71,21 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, models.A
 		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Proof of Possession is not provided"}
 	}
 
-	var csr_ver = models.RawNebulaCsr{
-		ServerKeygen: &csr.ServerKeygen,
-		Rekey:        &csr.Rekey,
-		Hostname:     csr.Hostname,
-		PublicKey:    csr.PublicKey,
-	}
-
-	b, err := proto.Marshal(&csr_ver)
-
-	if err != nil {
-		return http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()}
-	}
-
-	if !ed25519.Verify(csr.PublicKey, b, csr.Pop) {
-		return http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Proof of Possession is not valid"}
-	}
 	return 0, models.ApiError{}
 }
 
 func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
 	var path string
 	switch option {
-	case ENROLL:
+	case models.ENROLL:
 		path = "/ncsr/sign"
-	case RENROLL:
+	case models.RENROLL:
 		if csr.ServerKeygen {
 			path = "/ncsr/generate"
 		} else {
 			path = "/ncsr/sign"
 		}
-	case SERVERKEYGEN:
+	case models.SERVERKEYGEN:
 		path = "/ncsr/generate"
 	}
 
@@ -147,7 +128,7 @@ func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
 func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models.NebulaCsrResponse, error) {
 	var conf_resp *models.ConfResponse
 	var err error
-	if option != RENROLL {
+	if option != models.RENROLL {
 		conf_resp, err = requestConf(hostname)
 		if err != nil {
 			return nil, err
@@ -155,17 +136,17 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 	}
 
 	csr.Groups = conf_resp.Groups
-	ca_response, err := sendCSR(csr, ENROLL)
+	ca_response, err := sendCSR(csr, models.ENROLL)
 	if err != nil {
 		return nil, err
 	}
 
 	var csr_resp models.NebulaCsrResponse
 	csr_resp.NebulaCert = ca_response.NebulaCert
-	if option == SERVERKEYGEN {
+	if option == models.SERVERKEYGEN {
 		csr_resp.NebulaPrivateKey = ca_response.NebulaPrivateKey
 	}
-	if option != RENROLL {
+	if option != models.RENROLL {
 		csr_resp.NebulaConf = conf_resp.NebulaConf
 	}
 
@@ -211,7 +192,6 @@ func Enroll(c *gin.Context) {
 	hostname := c.Params.ByName("hostname")
 	if hostname == "" {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no hostname provided"})
-		log.Printf("Bad request: %v. No hostname provided\n", err)
 		return
 	}
 
@@ -233,13 +213,13 @@ func Enroll(c *gin.Context) {
 		return
 	}
 
-	status_code, api_error := verifyCsr(csr, hostname, ENROLL)
+	status_code, api_error := verifyCsr(csr, hostname, models.ENROLL)
 	if status_code != 0 {
 		c.JSON(status_code, api_error)
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, ENROLL)
+	csr_resp, err := getCSRResponse(hostname, &csr, models.ENROLL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
@@ -350,13 +330,13 @@ func Reenroll(c *gin.Context) {
 		return
 	}
 
-	status_code, api_error := verifyCsr(csr, hostname, RENROLL)
+	status_code, api_error := verifyCsr(csr, hostname, models.RENROLL)
 	if status_code != 0 {
 		c.JSON(status_code, api_error)
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, RENROLL)
+	csr_resp, err := getCSRResponse(hostname, &csr, models.RENROLL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
@@ -392,13 +372,13 @@ func Serverkeygen(c *gin.Context) {
 		return
 	}
 
-	status_code, api_error := verifyCsr(csr, hostname, SERVERKEYGEN)
+	status_code, api_error := verifyCsr(csr, hostname, models.SERVERKEYGEN)
 	if status_code != 0 {
 		c.JSON(status_code, api_error)
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, SERVERKEYGEN)
+	csr_resp, err := getCSRResponse(hostname, &csr, models.SERVERKEYGEN)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
