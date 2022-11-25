@@ -1,0 +1,108 @@
+openapi: 3.0.3
+info:
+  title: Nebula Configuration service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
+  description: |-
+    This is a simple Nebula Configuration service that generates Nebula configuration files from Dhall configuration files on behalf of the NEST service
+  contact:
+    email: gianmarco.decola@studio.unibo.it
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.2.1
+externalDocs:
+ description: Find out more about NEST
+  url: https://github.com/m4rkdc/nebula_est/tree/dev/app/nest_service/api/nebula_est-openapi.yaml
+servers:
+- url: "http://nest_config/"
+
+tags:
+- name: hostnames
+  description: Operations about valid Nebula hostnames for the future Nebula network (i.e. getting the list of valid hostnames).
+- name: configs
+  description: Operations about the Nebula Configuration files (i.e. generating the Nebula config file for a valid hostname.).
+paths:
+  /hostnames:
+    get:
+      tags:
+      - hostnames
+      summary: Return valid hostnames
+      description: Return the valid hostnames for the future Nebula network
+      operationId: getValidHostnames
+      responses:
+        "200":
+          description: "Successful operation: valid hostname"
+          content:
+            application/json:
+              schema: 
+                type: array
+                items:
+                  $ref : '#/components/schemas/hostname'    
+        "500":
+          description: Error reading the Dhall configuration file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 500
+                message: Internal Server Error. Ther was an error reading the Dhall configuration file
+
+  /configs/:hostname:
+    get:
+      tags:
+      - configs
+      summary: Generate a Nebula configuration file
+      description: Generate the Nebula configuration file for the specified hostname
+      operationId: generateConfig
+      parameters:
+      - name: hostname
+        in: path
+        description: Hostname of the client
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/hostname'
+      responses:
+        "201":
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref : '#/components/schemas/NebulaConfiguration'
+        "500":
+          description: Error generating the Nebula conf
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 500
+                message: "Internal Server Error. There was an error generating the Nebula configuration file"
+  
+components:
+  schemas:
+    hostname:
+      type: string
+      format: hostname
+      example: lighthouse1   
+    NebulaConfiguration:
+      type: string
+      format: binary
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    ConfResponse:
+      type: object
+      properties:
+        nebulaConf:
+          $ref: '#/components/schemas/NebulaConfiguration'
+        groups:
+          type: array
+          items:
+            type: string
