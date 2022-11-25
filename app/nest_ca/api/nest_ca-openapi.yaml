@@ -112,22 +112,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/NebulaCertificate'
                 x-content-type: application/json
-        "503":
-          description: Service Unavailable
-          headers:
-            Retry-After:
-              description: Amount of time in which the resource is supposed to beavailable
-              schema:
-                type: integer
-                format: int64
+        "500":
+          description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
               example:
                 code: 503
-                message: Service Unavailable. Please retry after waiting the amount
-                  specified in the Retry-After header field.
+                message: "Internal Server Error: could not find the Nebula CA certificates"
 
 components:
   schemas:

@@ -6,10 +6,9 @@
  * API version: 0.2.1
  * Contact: gianmarco.decola@studio.unibo.it
  */
-package models
+package conf
 
-type ConfResponse struct {
-	NebulaConf []byte `json:"nebulaConf,omitempty"`
+import "github.com/gin-gonic/gin"
 
-	Groups []string `json:"groups,omitempty"`
+func GetValidHostnames(c *gin.Context) {
 }
