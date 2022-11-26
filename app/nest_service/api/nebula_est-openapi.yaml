@@ -2,15 +2,18 @@ openapi: 3.0.3
 info:
   title: Nebula Enrollment over Secure Transport - OpenAPI 3.0
   description: |-
-    This is a simple Public Key Infrastructure Management Server based on the RFC7030 Enrollment over Secure Transport Protocol for a Nebula Mesh Network. The Service accepts requests from mutually authenticated TLS-PSK connections to create Nebula Certificates for the client, either by signing client-generated Nebula Public Keys or by generating Nebula key pairs and signing the server-generated Nebula public key and to create Nebula configuration files for the specific client.
-    This Service acts as a Facade for the Nebula CA service (actually signign or creating the Nebula keys) and the Nebula Config service (actually creating the nebula Config. files).
+    This is a simple Public Key Infrastructure Management Server based on the RFC7030 Enrollment over Secure Transport Protocol for a Nebula Mesh Network.
+    The Service accepts requests from TLS connections to create Nebula Certificates for the client (which will be authenticated by providing a secret).
+    The certificate creation is done either by signing client-generated Nebula Public Keys or by generating Nebula key pairs and signing the server-generated
+    Nebula public key and to create Nebula configuration files for the specific client. This Service acts as a Facade for the Nebula CA service
+    (actually signign or creating the Nebula keys) and the Nebula Config service (actually creating the nebula Config. files).
   termsOfService: http://swagger.io/terms/
   contact:
     email: gianmarco.decola@studio.unibo.it
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  version: 0.2.1
+  version: 0.3.1
 externalDocs:
   description: Find out more about EST (RFC7030)
   url: https://www.rfc-editor.org/rfc/rfc7030.html
@@ -36,18 +39,18 @@ paths:
       - ncsr
       summary: Open a Nebula CSR application
       description: Open a Nebula Certificate Signing Request application by providing
-        the Nebula hostname of the client
+        the NEST authentication object
       operationId: ncsrApplication
       requestBody:
-        description: The future Nebula hostname of the client requesting the certificate
+        description: The future Nebula hostname of the client requesting the certificate and a secret to be verified
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/hostname'
+              $ref: '#/components/schemas/NESTAuth'
         required: true
       responses:
         "201":
-          description: "Successful operation: valid hostname"
+          description: "Successful operation: valid hostname and secret"
           headers:
             Location:
               description: The location of the new NCSR Status page
@@ -57,7 +60,7 @@ paths:
                 type: string
                 format: url
         "400":
-          description: Invalid hostname supplied
+          description: Invalid hostname or secret supplied
           content:
             application/json:
               schema:
@@ -353,6 +356,14 @@ components:
       type: string
       format: hostname
       example: lighthouse1
+    NESTAuth:
+      type: object
+      properties:
+        Hostname:
+          $ref: '#/components/schemas/hostname'
+        Secret:
+          type: string
+          format: binary        
     NebulaCertificate:
       type: object
       properties:
@@ -627,7 +638,7 @@ components:
         NebulaCert:
           $ref: '#/components/schemas/NebulaCertificate'
         NebulaPrivateKey:
-          type:
+          type: string
           format: binary
         NebulaConf:
           $ref: '#/components/schemas/NebulaConfiguration'
