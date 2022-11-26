@@ -1,10 +1,9 @@
 /*
-* Nebula CA service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
-*
-* This is a simple Nebula CA service that signs Nebula Public keys and generates Nebula Key Pairs and Certificates on behalf of the NEST service
-*
-* API version: 0.2.1
-* Contact: gianmarco.decola@studio.unibo.it
+ * NEST: Nebula Enrollment over Secure Transport - OpenAPI 3.0
+ *
+ * This package contains the NEST_CA service routes and their REST API endpoints implementation, along with some service-specific utilities.
+ * API version: 0.3.1
+ * Contact: gianmarco.decola@studio.unibo.it
  */
 package nest_ca
 
@@ -17,9 +16,7 @@ import (
 	"github.com/slackhq/nebula/cert"
 )
 
-/*
- * This function gets the Nebula CA certs from the Ca_cert_file and returns them.
- */
+// The getCaCertFomFile function gets the Nebula CA certs from the Ca_cert_file and returns them.
 func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
 	b, err := os.ReadFile(Ca_keys_path + "ca.crt")
 	if err != nil {
@@ -44,6 +41,7 @@ func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
 	return ca_certs, nil
 }
 
+// The Cacerts REST endpoint returns the Nebula CA(s) certificates to the nest_service
 func Cacerts(c *gin.Context) {
 	ca_certs, err := getCaCertFromFile()
 

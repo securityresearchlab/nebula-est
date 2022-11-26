@@ -1,15 +1,15 @@
 /*
- * Nebula Enrollment over Secure Transport - OpenAPI 3.0
- *
- * This is a simple Public Key Infrastructure Management Server based on the RFC7030 Enrollment over Secure Transport Protocol for a Nebula Mesh Network.
- * The Service accepts requests from TLS connections to create Nebula Certificates for the client (which will be authenticated by providing a secret).
- * The certificate creation is done either by signing client-generated Nebula Public Keys or by generating Nebula key pairs and signing the server-generated
- * Nebula public key and to create Nebula configuration files for the specific client. This Service acts as a Facade for the Nebula CA service
- * (actually signign or creating the Nebula keys) and the Nebula Config service (actually creating the nebula Config. files).
- *
- * API version: 0.3.1
- * Contact: gianmarco.decola@studio.unibo.it
- */
+# Nebula Enrollment over Secure Transport - OpenAPI 3.0
+
+This is a simple Public Key Infrastructure Management Server based on the RFC7030 Enrollment over Secure Transport Protocol for a Nebula Mesh Network.
+The Service accepts requests from TLS connections to create Nebula Certificates for the client (which will be authenticated by providing a secret).
+The certificate creation is done either by signing client-generated Nebula Public Keys or by generating Nebula key pairs and signing the server-generated
+Nebula public key and to create Nebula configuration files for the specific client. This Service acts as a Facade for the Nebula CA service
+(actually signign or creating the Nebula keys) and the Nebula Config service (actually creating the nebula Config. files).
+
+API version: 0.3.1
+Contact: gianmarco.decola@studio.unibo.it
+*/
 package main
 
 import (
@@ -52,9 +52,9 @@ func getHostnames() ([]string, error) {
 }
 
 /*
- * checkHostnamesFile checks if the file containing all the valid hostnames already exists.
- * If not, it creates it and populates it by sending a request to the nest_config service
- */
+checkHostnamesFile checks if the file containing all the valid hostnames already exists.
+If not, it creates it and populates it by sending a request to the nest_config service
+*/
 func checkHostnamesFile() error {
 	if _, err := os.Stat(nest.Hostnames_file); err != nil {
 		log.Printf("%s doesn't exist. Creating it and requesting the cert from Nebula CA service\n", nest.Hostnames_file)
@@ -79,10 +79,10 @@ func checkHostnamesFile() error {
 }
 
 /*
- * nest_service is a REST API server which acts a facade between NEST clients and the inner Nebula CA and configuration services.
- * In the main function, the proper environment is set up before starting a Gin https server rechable by the clients and an http client over a
- * Nebula network for authentication and confidentiality among the peers (NEST , NEST_CA and NEST_CONFIG services)
- */
+nest_service is a REST API server which acts a facade between NEST clients and the inner Nebula CA and configuration services.
+In the main function, the proper environment is set up before starting a Gin https server rechable by the clients and an http client over a
+Nebula network for authentication and confidentiality among the peers (NEST , NEST_CA and NEST_CONFIG services)
+*/
 func main() {
 	if val, ok := os.LookupEnv("LOG_FILE"); ok {
 		nest.Log_file = val

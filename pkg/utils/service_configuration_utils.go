@@ -1,3 +1,10 @@
+/*
+NEST: Nebula Enrollment over Secure Transport - OpenAPI 3.0
+
+This package contains system-wide utility functions.
+API version: 0.3.1
+Contact: gianmarco.decola@studio.unibo.it
+*/
 package utils
 
 import (
@@ -37,13 +44,13 @@ func IsRWOwner(mode os.FileMode) bool {
 }
 
 /*
- * setupNebula controls if the nebula binary is present in NEBULA_FOLDER and, if it is executable, executes it
- * to create a Nebula interface. If the interface is actually created, returns nil, err otherwise
- */
+setupNebula controls if the nebula binary is present in NEBULA_FOLDER and, if it is executable, executes it
+to create a Nebula interface. If the interface is actually created, returns nil, err otherwise
+*/
 func SetupNebula(nebula_folder string) error {
 	info, err := os.Stat(nebula_folder + "nebula")
 	if err != nil {
-		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nest.Nebula_folder+"nebula")
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nebula_folder+"nebula")
 		return err
 	}
 	if !IsExecOwner(info.Mode()) {

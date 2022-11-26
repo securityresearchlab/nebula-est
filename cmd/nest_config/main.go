@@ -1,11 +1,10 @@
 /*
- * Nebula CA service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
- *
- * This is a simple Nebula CA service that signs Nebula Public keys and generates Nebula Key Pairs and Certificates on behalf of the NEST service
- *
- * API version: 0.2.1
- * Contact: gianmarco.decola@studio.unibo.it
- */
+# Nebula CA service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
+This is a simple Nebula CA service that signs Nebula Public keys and generates Nebula Key Pairs and Certificates on behalf of the NEST service
+
+API version: 0.3.1
+Contact: gianmarco.decola@studio.unibo.it
+*/
 package main
 
 import (
@@ -18,10 +17,10 @@ import (
 )
 
 /*
- * nest_config is a REST API server which acts as a Nebula Config service for the NEST system.
- * In the main function, the proper environment is set up before starting a Gin http server over a
- * Nebula network for authentication and confidentiality among the peers (NEST , NEST_CA and NEST_CONFIG services)
- */
+nest_config is a REST API server which acts as a Nebula Config service for the NEST system.
+In the main function, the proper environment is set up before starting a Gin http server over a
+Nebula network for authentication and confidentiality among the peers (NEST , NEST_CA and NEST_CONFIG services)
+*/
 func main() {
 	if val, ok := os.LookupEnv("LOG_FILE"); ok {
 		conf.Log_file = val

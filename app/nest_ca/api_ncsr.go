@@ -1,9 +1,8 @@
 /*
- * Nebula CA service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
+ * NEST: Nebula Enrollment over Secure Transport - OpenAPI 3.0
  *
- * This is a simple Nebula CA service that signs Nebula Public keys and generates Nebula Key Pairs and Certificates on behalf of the NEST service
- *
- * API version: 0.2.1
+ * This package contains the NEST_CA service routes and their REST API endpoints implementation, along with some service-specific utilities.
+ * API version: 0.3.1
  * Contact: gianmarco.decola@studio.unibo.it
  */
 package nest_ca
@@ -23,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// the checkExistingCert function verifies if the given hostname has already an issued certificate. If so, returns the containing IPAddress.
 func checkExistingCert(hostname string) (string, error) {
 	b, err := os.ReadFile(Certificates_path + hostname + ".crt")
 	if err != nil {
@@ -41,6 +41,10 @@ func checkExistingCert(hostname string) (string, error) {
 	return nc.Details.Ips[0].IP.String(), nil
 }
 
+/*
+ * The generateCertificate function creates a new Nebula certificate for the given Nebula CSR.
+ * To do so, it either signs the client-provided public key or generates the Nebula key pair and then signs it depending on the option discriminator (ENROLL, SERVERKEYGEN))
+ */
 func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
 	var ca_response *models.CaResponse
 	var groups string
@@ -105,6 +109,10 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 	return ca_response, nil
 }
 
+/*
+ * The CertificateSign REST endpoint creates a new Nebula certificate by signing the client provided Nebula Public Key.
+ * It verifies if the provided Proof of Possession is valid for the given Public key before returning the certificate back to the client.
+ */
 func CertificateSign(c *gin.Context) {
 	fmt.Println("Certificate Signing Request arrived")
 	var csr models.NebulaCsr
@@ -146,6 +154,7 @@ func CertificateSign(c *gin.Context) {
 	c.JSON(http.StatusOK, *ca_response)
 }
 
+// The GenerateKeys REST endpoint creates a new Nebula certificate by generating the Nebula private key and certificate for the given hostname.
 func GenerateKeys(c *gin.Context) {
 	fmt.Println("Certificate Signing Request arrived")
 

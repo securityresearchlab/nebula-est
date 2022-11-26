@@ -1,10 +1,10 @@
 /*
- * NEST: Nebula Enrollment over Secure Transport - OpenAPI 3.0
- *
- * This module contains the NEST service routes
- * API version: 0.3.1
- * Contact: gianmarco.decola@studio.unibo.it
- */
+NEST: Nebula Enrollment over Secure Transport - OpenAPI 3.0
+
+This package contains the NEST service routes and their REST API endpoints implementation, along with some service-specific utilities.
+API version: 0.3.1
+Contact: gianmarco.decola@studio.unibo.it
+*/
 package nest_service
 
 import (
