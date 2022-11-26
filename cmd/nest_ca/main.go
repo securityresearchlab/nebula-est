@@ -9,75 +9,21 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	ca "github.com/m4rkdc/nebula_est/app/nest_ca"
+	"github.com/m4rkdc/nebula_est/pkg/utils"
 	"github.com/xgfone/netaddr"
 )
 
-func isExecOwner(mode os.FileMode) bool {
-	return mode&0100 != 0
-}
-
-func isRWOwner(mode os.FileMode) bool {
-	return mode&0600 != 0
-}
-
-func setupLogger(router *gin.Engine) error {
-	logF, err := os.OpenFile(ca.Log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		return err
-	}
-
-	gin.ForceConsoleColor()
-	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Output: io.MultiWriter(logF, os.Stdout),
-	}))
-	return nil
-}
-
-func setupNebula() error {
-	info, err := os.Stat(ca.Nebula_folder + "nebula")
-	if err != nil {
-		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", ca.Nebula_folder+"nebula")
-		return err
-	}
-	if !isExecOwner(info.Mode()) {
-		os.Chmod(ca.Nebula_folder+"nebula", 0700)
-	}
-
-	cmd := exec.Command(ca.Nebula_folder+"nebula", "-config "+ca.Nebula_folder+"config.yml")
-	if err = cmd.Run(); err != nil {
-		return err
-	}
-	interfaces, err := net.Interfaces()
-
-	if err != nil {
-		fmt.Printf("Could'nt check information about host interfaces\n")
-		return err
-	}
-
-	var found bool = false
-	for _, i := range interfaces {
-		if strings.Contains(strings.ToLower(i.Name), "nebula") {
-			found = true
-			break
-		}
-	}
-
-	if found {
-		return nil
-	}
-	return errors.New("could not setup a nebula tunnel")
-}
-
+/*
+ * nest_ca is a REST API server which acts as a Nebula CA service for the NEST system.
+ * In the main function, the proper environment is set up before starting a Gin http server over a
+ * Nebula network for authentication and confidentiality among the peers (NEST , NEST_CA and NEST_CONFIG services)
+ */
 func main() {
 	if val, ok := os.LookupEnv("CA_NAME"); ok {
 		ca.Ca_name = val
@@ -131,7 +77,7 @@ func main() {
 		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula-cert bin to the service before starting it\nExiting...", ca.Ca_bin)
 		os.Exit(2)
 	}
-	if !isExecOwner(info.Mode()) {
+	if !utils.IsExecOwner(info.Mode()) {
 		os.Chmod(ca.Ca_bin, 0700)
 	}
 
@@ -145,7 +91,7 @@ func main() {
 			os.Exit(3)
 		}
 	}
-	if !isRWOwner(info.Mode()) {
+	if !utils.IsRWOwner(info.Mode()) {
 		os.Chmod(ca.Ca_keys_path+"ca.key", 0600)
 		os.Chmod(ca.Ca_keys_path+"ca.crt", 0600)
 	}
@@ -168,7 +114,7 @@ func main() {
 		os.Exit(8)
 	}
 
-	if err = setupNebula(); err != nil {
+	if err = utils.SetupNebula(ca.Nebula_folder); err != nil {
 		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
 		os.Exit(9)
 	}
@@ -176,7 +122,7 @@ func main() {
 	fmt.Println("Service setup finished")
 
 	router := gin.Default()
-	setupLogger(router)
+	utils.SetupLogger(router, ca.Log_file)
 	for _, r := range ca.Ca_routes {
 		switch r.Method {
 		case "GET":
