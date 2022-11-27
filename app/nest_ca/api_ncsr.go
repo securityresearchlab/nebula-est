@@ -13,8 +13,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/pkg/models"
@@ -46,23 +44,24 @@ func checkExistingCert(hostname string) (string, error) {
  * To do so, it either signs the client-provided public key or generates the Nebula key pair and then signs it depending on the option discriminator (ENROLL, SERVERKEYGEN))
  */
 func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
-	var ca_response *models.CaResponse
-	var groups string
-	var ip string
+	var (
+		ca_response *models.CaResponse
+		groups      string
+		ip          string
+		err         error
+	)
 	for _, s := range csr.Groups {
 		groups += s + ","
 	}
 
-	ip, err := checkExistingCert(csr.Hostname)
-	if err != nil {
-		return nil, &models.ApiError{Code: http.StatusInternalServerError, Message: "Internal server error: " + err.Error()}
-	}
-	if len(ip) == 0 {
-		if strings.Contains(csr.Hostname, "lightouse") {
-			ip = Network.nebula_network.First().String()
-		} else {
-			ip = Network.AddIpNetwork().String()
+	if len(csr.Ip) == 0 {
+		oldIp, err := checkExistingCert(csr.Hostname)
+		if err != nil {
+			return nil, &models.ApiError{Code: http.StatusInternalServerError, Message: "Internal server error: " + err.Error()}
 		}
+		ip = oldIp
+	} else {
+		ip = csr.Ip
 	}
 	var cmd *exec.Cmd
 	if option == models.SERVERKEYGEN {
@@ -86,7 +85,7 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 		ca_response.NebulaPrivateKey = key
 	}
 
-	cmd = exec.Command(Ca_bin, "sign -ca-crt "+Ca_keys_path+"ca.crt -ca-key "+Ca_keys_path+"ca.key -in-pub "+Certificates_path+csr.Hostname+".pub -groups "+groups[:len(groups)-1]+" -name "+csr.Hostname+" -out-crt "+Certificates_path+csr.Hostname+".crt -ip "+ip+"/"+strconv.Itoa(Network.GetIpNetwork().Mask()))
+	cmd = exec.Command(Ca_bin, "sign -ca-crt "+Ca_keys_path+"ca.crt -ca-key "+Ca_keys_path+"ca.key -in-pub "+Certificates_path+csr.Hostname+".pub -groups "+groups[:len(groups)-1]+" -name "+csr.Hostname+" -out-crt "+Certificates_path+csr.Hostname+".crt -ip "+ip)
 	if err = cmd.Run(); err != nil {
 		return nil, &models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()}
 	}
@@ -105,6 +104,8 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 		return nil, &models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()}
 	}
 	ca_response.NebulaCert = *nc
+
+	//TODO: POST request to Verify endpoint of the nest_config service to see if the generated certificate is coeherent with the network
 
 	return ca_response, nil
 }

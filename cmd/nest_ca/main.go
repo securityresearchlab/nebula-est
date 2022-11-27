@@ -15,7 +15,6 @@ import (
 	"github.com/gin-gonic/gin"
 	ca "github.com/m4rkdc/nebula_est/app/nest_ca"
 	"github.com/m4rkdc/nebula_est/pkg/utils"
-	"github.com/xgfone/netaddr"
 )
 
 /*
@@ -46,16 +45,6 @@ func main() {
 	}
 	if val, ok := os.LookupEnv("CA_KEYS_PATH"); ok {
 		ca.Ca_keys_path = val
-	}
-	if val, ok := os.LookupEnv("NET"); ok {
-		net, err := netaddr.NewIPNetwork(val)
-		if err == nil {
-			ca.Network.NewNebulaIpNetwork(net)
-		} else {
-			ca.Network.NewNebulaIpNetwork(netaddr.MustNewIPNetwork("192.168.100.0/24"))
-		}
-	} else {
-		ca.Network.NewNebulaIpNetwork(netaddr.MustNewIPNetwork("192.168.100.0/24"))
 	}
 
 	if val, ok := os.LookupEnv("NEBULA_FOLDER"); ok {

@@ -10,11 +10,22 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/gin-gonic/gin"
 	conf "github.com/m4rkdc/nebula_est/app/nest_config"
 	"github.com/m4rkdc/nebula_est/pkg/utils"
 )
+
+// generateAllNebulaConfigs generates Nebula configuration files for every client using the dhall-nebula tool
+func generateAllNebulaConfigs() error {
+	cmd := exec.Command(conf.Dhall_dir+"bin/dhall-nebula", "--dhallDir "+conf.Dhall_dir+" --configFileName "+conf.Dhall_configuration+" config --configsPath "+conf.Conf_gen_dir)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 /*
 nest_config is a REST API server which acts as a Nebula Config service for the NEST system.
@@ -36,6 +47,9 @@ func main() {
 	if val, ok := os.LookupEnv("DHALL_DIR"); ok {
 		conf.Dhall_dir = val
 	}
+	if val, ok := os.LookupEnv("DHALL_CONFIGURATION"); ok {
+		conf.Dhall_configuration = val
+	}
 	if val, ok := os.LookupEnv("CONF_GEN_DIR"); ok {
 		conf.Conf_gen_dir = val
 	}
@@ -46,25 +60,37 @@ func main() {
 
 	fmt.Println("Service started")
 
-	info, err := os.Stat(conf.Dhall_dir + "dhall-nebula")
+	info, err := os.Stat(conf.Dhall_dir + "bin/dhall-nebula")
 	if err != nil {
 		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the dhall-nebula bin to the service before starting it\nExiting...", conf.Dhall_dir+"dhall-nebula")
-		os.Exit(2)
+		os.Exit(1)
 	}
 	if !utils.IsExecOwner(info.Mode()) {
-		os.Chmod(conf.Dhall_dir+"dhall-nebula", 0700)
+		os.Chmod(conf.Dhall_dir+"bin/dhall-nebula", 0700)
+	}
+	info, err = os.Stat(conf.Dhall_configuration)
+	if err != nil {
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the dhall-nebula bin to the service before starting it\nExiting...", conf.Dhall_configuration)
+		os.Exit(2)
+	}
+	if !utils.IsRWOwner(info.Mode()) {
+		os.Chmod(conf.Dhall_configuration, 0600)
+	}
+	if err = generateAllNebulaConfigs(); err != nil {
+		fmt.Printf("Could not generate Nebula configuration files\n")
+		os.Exit(3)
 	}
 
 	if _, err := os.Stat(conf.Nebula_folder + "nest_config.crt"); err != nil {
-		fmt.Printf("Cannot find NEST CA Nebula certificate\n")
+		fmt.Printf("Cannot find NEST config Nebula certificate\n")
 		os.Exit(5)
 	}
 	if _, err := os.Stat(conf.Nebula_folder + "nest_config.key"); err != nil {
-		fmt.Printf("Cannot find NEST CA Nebula key\n")
+		fmt.Printf("Cannot find NEST config Nebula key\n")
 		os.Exit(6)
 	}
 	if _, err := os.Stat(conf.Nebula_folder + "ca.crt"); err != nil {
-		fmt.Printf("Cannot find NEST CA ca crt\n")
+		fmt.Printf("Cannot find NEST config ca crt\n")
 		os.Exit(7)
 	}
 

@@ -2,9 +2,13 @@ module github.com/m4rkdc/nebula_est
 
 go 1.19
 
-require github.com/slackhq/nebula v1.6.1
+require (
+	github.com/philandstuff/dhall-golang/v6 v6.0.2
+	github.com/slackhq/nebula v1.6.1
+)
 
 require (
+	github.com/fxamacker/cbor/v2 v2.2.1-0.20200511212021-28e39be4a84f // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
@@ -17,6 +21,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
@@ -25,7 +30,6 @@ require (
 
 require (
 	github.com/gin-gonic/gin v1.8.1
-	github.com/xgfone/netaddr v0.5.1
 	golang.org/x/crypto v0.3.0 // indirect
 	google.golang.org/protobuf v1.28.1
 )

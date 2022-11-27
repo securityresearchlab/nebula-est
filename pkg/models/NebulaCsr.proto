@@ -9,4 +9,5 @@ message RawNebulaCsr {
     optional bytes PublicKey = 4;
     optional bytes Pop = 5;
     repeated string Groups = 6;
+    optional string  Ip   = 7;
 }

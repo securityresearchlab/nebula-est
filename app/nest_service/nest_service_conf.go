@@ -17,19 +17,30 @@ import (
 )
 
 var (
-	Hostnames_file    string = "config/hostnames"
-	Secrets_file      string = "config/secrets"
-	Log_file          string = "log/nest_service.log"
-	Ca_cert_file      string = "config/ca.crt"
-	Service_ip        string = "localhost"
-	Service_port      string = "8080"
-	Ca_service_ip     string = "192.168.80.2"
-	Ca_service_port   string = "5353"
-	Conf_service_ip   string = "192.168.80.3"
+	//A file in which to store the expected valid hostnames of the future Nebula network
+	Hostnames_file string = "config/hostnames"
+	//This service's log file
+	Log_file string = "log/nest_service.log"
+	//A file storing the Nebula certificate of the NEST CA
+	Ca_cert_file string = "config/ca.crt"
+	//This service's IP address
+	Service_ip string = "localhost"
+	//This service's port
+	Service_port string = "8080"
+	//The NEST CA service IP address on the NEST system Nebula network
+	Ca_service_ip string = "192.168.80.2"
+	//The NEST CA service port
+	Ca_service_port string = "5353"
+	//The NEST CONFIG service IP address on the NEST system Nebula network
+	Conf_service_ip string = "192.168.80.3"
+	//The NEST CONFIG service port
 	Conf_service_port string = "61616"
-	Nebula_folder     string = "config/nebula/"
-	TLS_folder        string = "config/tls/"
-	HMAC_key          string = "config/hmac.key"
+	//Folder containing this service's NEST system Nebula network keys and configurations
+	Nebula_folder string = "config/nebula/"
+	//Folder containing this service's TLS certificates and keys
+	TLS_folder string = "config/tls/"
+	//File containing the key used to sign HMACs
+	HMAC_key string = "config/hmac.key"
 )
 
 // SetupTLS sets up the tls configuration for the nest_service server

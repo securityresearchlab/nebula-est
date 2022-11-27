@@ -12,4 +12,8 @@ type ConfResponse struct {
 	NebulaConf []byte `json:"nebulaConf,omitempty"`
 
 	Groups []string `json:"groups,omitempty"`
+
+	Ip string `json:"ip,omitempty"`
+
+	NebulaPath string `json:"NebulaPath"`
 }

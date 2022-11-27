@@ -48,6 +48,8 @@ type NebulaCsr struct {
 	Pop []byte `json:"POP,omitempty"`
 
 	Groups []string `json:"Groups,omitempty"`
+
+	Ip string `json:"ip,omitempty"`
 }
 
 type NebulaCsrResponse struct {
@@ -56,4 +58,6 @@ type NebulaCsrResponse struct {
 	NebulaPrivateKey []byte `json:"NebulaPrivateKey,omitempty"`
 
 	NebulaConf []byte `json:"NebulaConf,omitempty"`
+
+	NebulaPath string `json:"NebulaPath,omitempty"`
 }

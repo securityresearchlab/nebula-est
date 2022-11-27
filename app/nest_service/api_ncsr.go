@@ -82,9 +82,9 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 		if err != nil {
 			return nil, err
 		}
+		csr.Groups = conf_resp.Groups
+		csr.Ip = conf_resp.Ip
 	}
-
-	csr.Groups = conf_resp.Groups
 	ca_response, err := sendCSR(csr, models.ENROLL)
 	if err != nil {
 		return nil, err
@@ -97,12 +97,13 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 	}
 	if option != models.RENROLL {
 		csr_resp.NebulaConf = conf_resp.NebulaConf
+		csr_resp.NebulaPath = conf_resp.NebulaPath
 	}
 
 	file, err := os.OpenFile("ncsr/"+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		fmt.Printf("Could not write to file: %v\n", err)
-		panic(err)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -137,6 +138,7 @@ func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
 		PublicKey:    csr.PublicKey,
 		Pop:          csr.Pop,
 		Groups:       csr.Groups,
+		Ip:           &csr.Ip,
 	}
 
 	b, err := protojson.Marshal(&raw_csr)
@@ -303,12 +305,12 @@ func Enroll(c *gin.Context) {
 
 	b, err := os.ReadFile("ncsr/" + hostname)
 	if err == nil {
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please authenticate yourself to https://" + Service_ip + ":" + Service_port + "/ncsr providing your hostname and secret, before accessing this endpoint"})
 		return
 	}
 
 	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
-		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https:https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/reenroll"})
+		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https://" + Service_ip + ":" + Service_port + "/ncsr/" + hostname + "/reenroll"})
 		return
 	}
 
