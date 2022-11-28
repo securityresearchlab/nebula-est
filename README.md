@@ -7,6 +7,30 @@ This repo proposes a simple and automated certificate and configuration manageme
 A Client who wants to establish a Nebula Mesh VPN has no officially provided way to automatically provision CA signed Nebula certificates and configuration files to the future end nodes of the network. Instead, he/she should rely on manual deployment or secure copy (scp) of such files, implying human intervention is mandatory. The hereby proposed system wants to achieve this distribution in an automated and secure way, insuring an authenticated, tamper-proof and confidential exchange of these crucial files in order to ensure that only the authorized hosts will join the secure Nebula network, using the intended configurations. This system could help set-up a
 Nebula Mesh VPN in an Industrial Control System (or IIoT) settings, i.e., deploying the Nebula certs. and configs. on PLCs (programmable logic controllers), SBC (Single Board Computers, i.e., Raspberry Pis) and EWS (Engineering Workstations), to create secure, peer to peer networks between these crucial assets, that will communicate over secure and isolated channels instead of the probably unsecure and unsegregated OT network. It can also help enforce Zero Trust principles by leveraging the identity-based routing and communication infrastructure provided by the Nebula Mesh VPN.
 
+## Project structure
+
+- `app`: folder containing services and client buisness logic
+  - `nest_ca`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_config`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_service`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_client`
+    - `api`: folder containing the documentation for this service REST API
+- `build`: target folder for compiled files
+- `cmd`: folder containing the main entry points for each service and client
+  - `nest_ca`
+  - `nest_config`
+  - `nest_service`
+  - `nest_client`
+- `configs`: configuration files for every service and client (to be added in deployment)
+- `docs`: general documetation for the project
+
+- `pkg`: folder containing public code used throughout the project
+  - `models`: folder containing the system model
+  - `utils`: miscellaneous utilities
+
 ## Installation
 
 To build NEST from source just run
