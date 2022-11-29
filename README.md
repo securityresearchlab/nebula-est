@@ -154,6 +154,30 @@ This sequence diagram shows a successful enrollment session by a client, both in
 
 This sequence diagram shows a Re-enrollment session by the client. This can be done either if the client certificate has expired, or for some reason the certificate has been compromised. The Nebula Certificate Signing Request for this sesion can also provide a boolean field (the Rekey field), that tells the NEST service that the client doesn't want a simple time extension of the previous certificate, but wants to recreate the cryptographic material associated to it, thus generating a new Nebula Certificate.
 
+## Project structure
+
+- `app`: folder containing services and client buisness logic
+  - `nest_ca`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_config`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_service`
+    - `api`: folder containing the documentation for this service REST API
+  - `nest_client`
+    - `api`: folder containing the documentation for this service REST API
+- `build`: target folder for compiled files
+- `cmd`: folder containing the main entry points for each service and client
+  - `nest_ca`
+  - `nest_config`
+  - `nest_service`
+  - `nest_client`
+- `configs`: configuration files for every service and client (to be added in deployment)
+- `docs`: general documetation for the project
+
+- `pkg`: folder containing public code used throughout the project
+  - `models`: folder containing the system model
+  - `utils`: miscellaneous utilities
+
 ## Installation
 
 To build NEST from source just run
