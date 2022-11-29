@@ -9,8 +9,9 @@
 package models
 
 type ApiError struct {
+	//HTTP status code
 	Code int32 `json:"code"`
-
+	//Error message
 	Message string `json:"message"`
 }
 

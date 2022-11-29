@@ -36,6 +36,8 @@ const (
   - publicKey: byte stream indicating the client-generated publicKey. Can be omitted if serverKeygen is true
   - pop: Proof of Possession of the private key associated to the provided publicKey (random integer sent by the server and encrypted with the private key). Required if publicKey is not empty
 */
+//A Nebula certificate signing request, sent by the client to the NEST service
+// and relayed to the NEST CA
 type NebulaCsr struct {
 	ServerKeygen bool `json:"serverKeygen,omitempty"`
 
@@ -52,12 +54,14 @@ type NebulaCsr struct {
 	Ip string `json:"ip,omitempty"`
 }
 
+// Response returned by the NEST service to the NEST client
 type NebulaCsrResponse struct {
+	//The newly generated Nebula Certificate
 	NebulaCert cert.NebulaCertificate `json:"NebulaCert"`
-
+	//The newly generated Nebula private key. Omitted if serverKeygen is false on the NebulaCsr
 	NebulaPrivateKey []byte `json:"NebulaPrivateKey,omitempty"`
-
+	//The newly generated Nebula configuration file. Omitted for re-enrollment CSRs
 	NebulaConf []byte `json:"NebulaConf,omitempty"`
-
+	//The client-local path in which the configuration file and nebula certificate has to be installed
 	NebulaPath string `json:"NebulaPath,omitempty"`
 }

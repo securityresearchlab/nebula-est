@@ -12,8 +12,10 @@ import (
 	"github.com/slackhq/nebula/cert"
 )
 
+// Response returned by the Nebula CA to the NEST service
 type CaResponse struct {
+	//The newly generated Nebula Certificate
 	NebulaCert cert.NebulaCertificate `json:"NebulaCert"`
-
+	//The newly generated Nebula private key. Omitted if serverKeygen is false on the NebulaCsr
 	NebulaPrivateKey []byte `json:"NebulaPrivateKey,omitempty"`
 }
