@@ -157,6 +157,7 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
 ## Project structure
 
 - `app`: folder containing services and client buisness logic
+  
   - `nest_ca`
     - `api`: folder containing the documentation for this service REST API
   - `nest_config`
@@ -165,16 +166,22 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
     - `api`: folder containing the documentation for this service REST API
   - `nest_client`
     - `api`: folder containing the documentation for this service REST API
+
 - `build`: target folder for compiled files
+
 - `cmd`: folder containing the main entry points for each service and client
+  
   - `nest_ca`
   - `nest_config`
   - `nest_service`
   - `nest_client`
+
 - `configs`: configuration files for every service and client (to be added in deployment)
+
 - `docs`: general documetation for the project
 
 - `pkg`: folder containing public code used throughout the project
+  
   - `models`: folder containing the system model
   - `utils`: miscellaneous utilities
 
@@ -194,6 +201,136 @@ If you want NEST to be installed into the default go folders, go ahead and launc
 
 ```bash
 go install ./cmd/*/
+```
+
+## Deployment
+
+A bash file will be provided for the preparation of the deployment environment using docker. In this section a full documentation of the config environment that mirros the `nest_deployment.sh` file is provided.
+
+Create a configs folder and a subfolder for each service and client of the system, e.g.:
+
+```bash
+configs/
+--- nest_service/
+--- nest_ca/
+--- nest_config/
+--- nest_client/
+```
+
+Let's create a Nebula Configuration Autority for the NEST system Nebula network:
+
+```bash
+wget https://github.com/slackhq/nebula/releases/download/v1.6.1/nebula-linux-amd64.tar.gz && tar -xzvf  nebula-linux-amd64.tar.gz && rm nebula-linux-amd64.tar.gz
+nebula-cert ca -name "nest_system_ca" -out-crt nest_system_ca.crt -out-key nest_system_ca.key
+```
+
+### nest_ca
+
+Enter the `nest_ca/` directory. Create a directory for the logs, one that will store the configuration files, and one that will store the generated NEST client's Nebula certificates, e.g.:
+
+```bash
+nest_ca/
+--- log/
+--- config/
+--- certificates/
+```
+
+From the `config/` subdirectory, let's create a `bin/` directory that will hold the `nebula-cert` binary to be used be the nebula_ca and copy the nebula-cert binary:
+
+```bash
+mkdir bin && cd bin
+cp ../../../nebula-cert .
+```
+
+Then, from the `config/` subdirectory, let's create a `keys/` folder that will hold the nest_ca Nebula key pair, and generate them.
+
+```bash
+mkdir keys && cd keys
+../bin/nebula-cert ca -name "ca" -out-crt ca.crt -out-key ca.key
+```
+
+Finally, from the `config/` subdirectory, let's create a `nebula/` folder that will hold the configuration files for the nest_ca host in the NEST system Nebula network and enter it.
+
+Let's copy the NEST system Nebula CA cert and nebula binary in this folder and create the nebula key pair for the nest_service host:
+
+```bash
+mkdir nebula && cd nebula
+cp ../../../nest_system_ca.crt ../../../nebula .
+../bin/nebula-cert sign -ip 192.168.80.1/24 -name nest_ca -ca-key ../../nest_system_ca.key -ca-crt nest_system_ca.crt
+```
+
+The config.yml Nebula configuration file will be created with the dhall-nebula tool. The configuration files to make it work are provided in the `examples` directory of the project. (Forse, poi tutorial su cosa cambiare nei dhall files per fare andare la proprio rete custom).
+
+### nest_config
+
+Enter the `nest_config/` directory. Create a directory for the logs, one that will store the configuration files and one that will store the dhall configuration files, e.g.:
+
+```bash
+nest_config/
+--- log/
+--- config/
+--- dhall/
+```
+
+Then, from the `dhall/` subdirectory,let's copy all the contents of the `examples/NEST client Nebula network configuration` folder. This will be a basis on which change the dhall configuration files in order to reflect what the NEST client Nebula network will be. For example, the `dhall/nebula/hosts/` directory will host dhall configuration files for each client host that will participate in the client network. Take a look at the example files to understand how the file is structured. You will have to create files with the same structure, name them "yourclientname.dhall" and change the configuration of the nebula.Host dhall type to match your desired client. Then, you will have to update the `dhall/nebula/nebula_conf.dhall` file in order to take into account your new host files (add them adding a new let <yourclientname> = <yourclientpath> line to the file) and information on your nebula network (groups, firewall connections, etc). (Tutorial su come cambiare i dhall files a fine readme ?)
+
+Finally, from the `config/` subdirectory, let's create a `nebula/` folder that will hold the configuration files for the NEST host in the NEST system Nebula network and enter it.
+
+Let's copy the NEST system Nebula CA cert and nebula binaries in this folder and create the nebula key pair for the nest_service host:
+
+```bash
+mkdir nebula && cd nebula
+cp ../../../nest_system_ca.crt ../../../nebula .
+../../../nebula-cert sign -ip 192.168.80.2/24 -name nest_config -ca-key ../../../nest_system_ca.key -ca-crt nest_system_ca.crt
+```
+
+The config.yml Nebula configuration file will be created with the dhall-nebula tool. The configuration files to make it work are provided in the `examples` directory of the project. (Forse, poi tutorial su cosa cambiare nei dhall files per fare andare la proprio rete custom).
+
+### nest_service
+
+Enter the `nest_service/` directory. Create a directory for the logs and one that will store the configuration files, e.g.:
+
+```bash
+nest_service/
+--- log/
+--- config/
+```
+
+First of all, we have to create the tls key pairs for the nest_service. Create a folder in the `config/` subfolder that will host the tls cryptografic material (e.g. `tls/`) and enter it.
+
+If you want a self signed certificate:
+
+```bash
+openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+openssl req -new -x509 -key nest_service-key.pem -out nest_service-crt.pem -days 365
+```
+
+If you already have an internal Certificate Authority, you need to create the key pair and a Certificate Signing Request to be signed by the CA:
+
+```bash
+openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+openssl req -new -sha256 -key nest_service-key.pem -out nest_service.csr
+openssl x509 -signkey <path-to-the-ca-key> -in nest_service.csr -req -days 365 -out nest_service-crt.pem
+```
+
+In both cases you will be prompted to insert some information about your new certificate
+
+Then, from the `config/` subdirectory, let's create a `nebula/` folder that will hold the configuration files for the nest_serivce host in the NEST system Nebula network and enter it.
+
+Let's copy the NEST system Nebula CA cert in this folder and create the nebula key pair for the nest_service host:
+
+```bash
+mkdir nebula && cd nebula
+cp ../../../nest_system_ca.crt ../../../nebula .
+../../../nebula-cert sign -ip 192.168.80.3/24 -name nest_service -ca-key ../../../nest_system_ca.key -ca-crt nest_system_ca.crt
+```
+
+The config.yml Nebula configuration file will be created with the dhall-nebula tool. The configuration files to make it work are provided in the `examples` directory of the project. (Forse, poi tutorial su cosa cambiare nei dhall files per fare andare la proprio rete custom).
+
+Finally, in the `config/` subdirectory, let's create the nest_service key to create and verify the NEST client's secret hmac.
+
+```bash
+ head /dev/urandom | sha256sum > hmac.key
 ```
 
 ## Documentation

@@ -34,10 +34,7 @@ const (
   - rekey: used in re-enrollment CSRs. Indicates if the Nebula key pair has to be regenerated for the new Nebula certificate. False if empty
   - hostname: the hostname of the requesting client. Required
   - publicKey: byte stream indicating the client-generated publicKey. Can be omitted if serverKeygen is true
-  - pop: Proof of Possession of the private key associated to the provided publicKey (random integer sent by the server and encrypted with the private key). Required if publicKey is not empty
 */
-//A Nebula certificate signing request, sent by the client to the NEST service
-// and relayed to the NEST CA
 type NebulaCsr struct {
 	ServerKeygen bool `json:"serverKeygen,omitempty"`
 
@@ -47,7 +44,7 @@ type NebulaCsr struct {
 
 	PublicKey []byte `json:"publicKey,omitempty"`
 
-	Pop []byte `json:"POP,omitempty"`
+	//Pop []byte `json:"POP,omitempty"`
 
 	Groups []string `json:"Groups,omitempty"`
 

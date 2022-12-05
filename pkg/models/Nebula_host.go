@@ -1,65 +1,30 @@
 package models
 
-type InterfaceInfo struct {
-	Host IPv4   `json:"host"`
-	Port uint32 `json:"port"`
-}
-
-type DnsConfig struct {
-	Dns_interface InterfaceInfo
-}
-
-type PkiInfo struct {
-	Ca   string `json:"ca"`
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-}
-
-type ListenInfo struct {
-	L_host       IPv4   `json:"l_host"`
-	L_port       uint32 `json:"l_port"`
-	Batch        uint32 `json:"batch,omitempty"`
-	Read_buffer  uint32 `json:"read_buffer,omitempty"`
-	Write_buffer uint32 `json:"write_buffer,omitempty"`
-}
+import (
+	dhall "github.com/philandstuff/dhall-golang/v6/core"
+)
 
 type IPv4 struct {
-	I1 uint32 `json:"i1"`
-	I2 uint32 `json:"i2"`
-	I3 uint32 `json:"i3"`
-	I4 uint32 `json:"i4"`
+	I1 dhall.NaturalLit `json:"i1" dhall:"i1"`
+	I2 dhall.NaturalLit `json:"i2" dhall:"i2"`
+	I3 dhall.NaturalLit `json:"i3" dhall:"i3"`
+	I4 dhall.NaturalLit `json:"i4" dhall:"i4"`
 }
 
 type IPv4WithPort struct {
-	I1     uint32 `json:"i1"`
-	I2     uint32 `json:"i2"`
-	I3     uint32 `json:"i3"`
-	I4     uint32 `json:"i4"`
-	I_port uint32 `json:"i_port"`
-}
-
-type TextBoolMapEntry struct {
-	MapKeyTB   string `json:"mapKeyIB"`
-	MapValueTB bool   `json:"mapValueTB"`
-}
-
-type LocalAllowListInfo struct {
-	Interfaces []TextBoolMapEntry        `json:"interfaces,omitempty"`
-	Cidrs      []IPv4NetworkBoolMapEntry `json:"cidrs,omitempty"`
-}
-
-type LighthouseInfo struct {
-	Interval          uint32                    `json:"interval"`
-	Remote_allow_list []IPv4NetworkBoolMapEntry `json:"remote_allow_list,omitempty"`
-	Local_allow_list  LocalAllowListInfo        `json:"local_allow_list,omitempty"`
+	I1     dhall.NaturalLit `json:"i1" dhall:"i1"`
+	I2     dhall.NaturalLit `json:"i2" dhall:"i2"`
+	I3     dhall.NaturalLit `json:"i3" dhall:"i3"`
+	I4     dhall.NaturalLit `json:"i4" dhall:"i4"`
+	I_port dhall.NaturalLit `json:"i_port" dhall:"i_port"`
 }
 
 type IPv4Network struct {
-	Mask uint32 `json:"mask"`
-	In1  uint32 `json:"in1"`
-	In2  uint32 `json:"in2"`
-	In3  uint32 `json:"in3"`
-	In4  uint32 `json:"in4"`
+	Mask dhall.NaturalLit `json:"mask" dhall:"mask"`
+	In1  dhall.NaturalLit `json:"in1" dhall:"in1"`
+	In2  dhall.NaturalLit `json:"in2" dhall:"in2"`
+	In3  dhall.NaturalLit `json:"in3" dhall:"in3"`
+	In4  dhall.NaturalLit `json:"in4" dhall:"in4"`
 }
 
 type IPv4NetworkBoolMapEntry struct {
@@ -67,70 +32,115 @@ type IPv4NetworkBoolMapEntry struct {
 	MapValueIB bool        `json:"mapValueIB"`
 }
 
+type TextBoolMapEntry struct {
+	MapKeyTB   dhall.PlainTextLit `json:"mapKeyIB" dhall:"mapKeyIB"`
+	MapValueTB dhall.BoolLit      `json:"mapValueTB" dhall:"mapValueTB"`
+}
+
+type CAName dhall.PlainTextLit
+
+type Directory dhall.PlainTextLit
+
+type Hostname dhall.PlainTextLit
+
+type PkiInfo struct {
+	Ca   dhall.PlainTextLit `json:"ca" dhall:"ca"`
+	Cert dhall.PlainTextLit `json:"cert" dhall:"cert"`
+	Key  dhall.PlainTextLit `json:"key" dhall:"key"`
+}
+
+type InterfaceInfo struct {
+	Host IPv4             `json:"host" dhall:"host"`
+	Port dhall.NaturalLit `json:"port" dhall:"port"`
+}
+
+type ListenInfo struct {
+	L_host       IPv4             `json:"l_host" dhall:"l_host"`
+	L_port       dhall.NaturalLit `json:"l_port" dhall:"l_port"`
+	Batch        dhall.NaturalLit `json:"batch,omitempty" dhall:"batch,omitempty"`
+	Read_buffer  dhall.NaturalLit `json:"read_buffer,omitempty" dhall:"read_buffer,omitempty"`
+	Write_buffer dhall.NaturalLit ` json:"write_buffer,omitempty" dhall:"write_buffer,omitempty"`
+}
+
+type DnsConfig struct {
+	Dns_interface InterfaceInfo `json:"dns_interface" dhall:"dns_interface"`
+}
+
+type IsLighthouseConfig struct {
+	Dns DnsConfig `json:"dns,omitempty" dhall:"dns,Optional"`
+}
+
 type PunchyInfo struct {
-	Punch   bool   `json:"punch"`
-	Respond bool   `json:"respond"`
-	Delay   string `json:"delay,omitempty"`
+	Punch   dhall.BoolLit      `json:"punch" dhall:"punch"`
+	Respond dhall.BoolLit      `json:"respond" dhall:"respond"`
+	Delay   dhall.PlainTextLit `json:"delay,omitempty" dhall:"delay,omitempty"`
 }
 
-type LogInfo struct {
-	Level             string `json:"level"`
-	Format            string `json:"format"`
-	Disable_timestamp bool   `json:"disable_timestamp,omitempty"`
-	Timestamp_format  string `json:"timestamp_format,omitempty"`
+type LocalAllowListInfo struct {
+	Interfaces []TextBoolMapEntry        `json:"interfaces,omitempty" dhall:"interfaces,Optional"`
+	Cidrs      []IPv4NetworkBoolMapEntry `json:"cidrs,omitempty" dhall:"cidrs,Optional"`
 }
 
-type TunRoute struct {
-	S_mtu   uint32      `json:"s_mtu"`
-	S_route IPv4Network `json:"s_route"`
-}
-
-type UnsafeTunRoute struct {
-	U_mtu   uint32      `json:"u_mtu"`
-	U_route IPv4Network `json:"u_route"`
-	Via     IPv4        `json:"via"`
-}
-
-type TunInfo struct {
-	Disabled             bool             `json:"disabled"`
-	Dev                  string           `json:"dev"`
-	Drop_local_broadcast bool             `json:"drop_local_broadcast"`
-	Drop_multicast       bool             `json:"drop_multicast"`
-	Tx_queue             uint32           `json:"tx_queue"`
-	Mtu                  uint32           `json:"mtu"`
-	Routes               []TunRoute       `json:"routes"`
-	Unsafe_routes        []UnsafeTunRoute `json:"unsafe_routes"`
+type LighthouseInfo struct {
+	Interval          dhall.NaturalLit          `json:"interval" dhall:"interval"`
+	Remote_allow_list []IPv4NetworkBoolMapEntry `json:"remote_allow_list,omitempty" dhall:"remote_allow_list,Optional"`
+	Local_allow_list  LocalAllowListInfo        `json:"local_allow_list,omitempty" dhall:"local_allow_list,Optional"`
 }
 
 type SSHDUsers struct {
-	User string   `json:"user"`
-	Keys []string `json:"keys"`
+	User dhall.PlainTextLit   `json:"user" dhall:"user"`
+	Keys []dhall.PlainTextLit `json:"keys" dhall:"keys,List"`
 }
 
 type SSHDInfo struct {
-	Listen           InterfaceInfo `json:"listen"`
-	Host_key         string        `json:"host_key"`
-	Authorized_users []SSHDUsers   `json:"authorized_users"`
+	Listen           InterfaceInfo      `json:"listen" dhall:"listen"`
+	Host_key         dhall.PlainTextLit `json:"host_key" dhall:"host_key"`
+	Authorized_users []SSHDUsers        `json:"authorized_users" dhall:"authorized_users,List"`
 }
 
-type Hostname struct {
-	Name string
+type TunRoute struct {
+	S_mtu   dhall.NaturalLit `json:"s_mtu" dhall:"s_mtu"`
+	S_route IPv4Network      `json:"s_route" dhall:"s_route"`
+}
+
+type UnsafeTunRoute struct {
+	U_mtu   dhall.NaturalLit `json:"u_mtu" dhall:"u_mtu"`
+	U_route IPv4Network      `json:"u_route" dhall:"u_route"`
+	Via     IPv4             `json:"via" dhall:"via"`
+}
+
+type TunInfo struct {
+	Disabled             dhall.BoolLit      `json:"disabled" dhall:"disabled"`
+	Dev                  dhall.PlainTextLit `json:"dev" dhall:"dev"`
+	Drop_local_broadcast dhall.BoolLit      `json:"drop_local_broadcast" dhall:"drop_local_broadcast"`
+	Drop_multicast       dhall.BoolLit      `json:"drop_multicast" dhall:"drop_multicast"`
+	Tx_queue             dhall.NaturalLit   `json:"tx_queue" dhall:"tx_queue"`
+	Mtu                  dhall.NaturalLit   `json:"mtu" dhall:"mtu"`
+	Routes               []TunRoute         `json:"routes" dhall:"routes,List"`
+	Unsafe_routes        []UnsafeTunRoute   `json:"unsafe_routes" dhall:"unsafe_routes,List"`
+}
+
+type LogInfo struct {
+	Level             dhall.PlainTextLit `json:"level" dhall:"level"`
+	Format            dhall.PlainTextLit `json:"format" dhall:"format"`
+	Disable_timestamp dhall.BoolLit      `json:"disable_timestamp,omitempty" dhall:"disable_timestamp,omitempty"`
+	Timestamp_format  dhall.PlainTextLit `json:"timestamp_format,omitempty" dhall:"timestamp_format,omitempty"`
 }
 
 type NebulaHost struct {
-	Name              Hostname       `json:"name"`
-	Ip                IPv4           `json:"ip"`
-	Lighthouse_config DnsConfig      `json:"lighthouse_config,omitempty"`
-	Pki               PkiInfo        `json:"pki"`
-	Lighthouse        LighthouseInfo `json:"lighthouse,omitempty"`
-	Static_ips        []IPv4WithPort `json:"static_ips,omitempty"`
-	Listen_interface  ListenInfo     `json:"listen_interface,omitempty"`
-	Punchy            PunchyInfo     `json:"punchy,omitempty"`
-	Logging           LogInfo        `json:"logging,omitempty"`
-	Tun               TunInfo        `json:"tun,omitempty"`
-	Local_range       string         `json:"local_range,omitempty"`
-	Sshd              SSHDInfo       `json:"sshd,omitempty"`
-	Am_relay          bool           `json:"am_relay,omitempty"`
-	Use_relays        bool           `json:"use_relays,omitempty"`
-	Relays            []IPv4         `json:"relays,omitempty"`
+	Name              Hostname           `json:"name" dhall:"name"`
+	Ip                IPv4               `json:"ip" dhall:"ip"`
+	Lighthouse_config IsLighthouseConfig `json:"lighthouse_config,omitempty" dhall:"lighthouse_config,Optional"`
+	Pki               PkiInfo            `json:"pki" dhall:"pki"`
+	Lighthouse        LighthouseInfo     `json:"lighthouse,omitempty" dhall:"lighthouse"`
+	Static_ips        []IPv4WithPort     `json:"static_ips,omitempty" dhall:"static_ips"`
+	Listen_interface  ListenInfo         `json:"listen_interface,omitempty" dhall:"listen_interface"`
+	Punchy            PunchyInfo         `json:"punchy,omitempty" dhall:"punchy"`
+	Logging           LogInfo            `json:"logging,omitempty" dhall:"logging"`
+	Tun               TunInfo            `json:"tun,omitempty" dhall:"tun,omitempty"`
+	Local_range       dhall.PlainTextLit `json:"local_range,omitempty" dhall:"local_range,Optional"`
+	Sshd              SSHDInfo           `json:"sshd,omitempty" dhall:"sshd,Optional"`
+	Am_relay          dhall.BoolLit      `json:"am_relay,omitempty" dhall:"am_relay"`
+	Use_relays        dhall.BoolLit      `json:"use_relays,omitempty" dhall:"use_relays"`
+	Relays            []IPv4             `json:"relays,omitempty" dhall:"relays"`
 }

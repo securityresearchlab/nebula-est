@@ -8,68 +8,66 @@
  */
 package models
 
-type GroupName string
+import (
+	dhall "github.com/philandstuff/dhall-golang/v6/core"
+)
+
+type GroupName dhall.PlainTextLit
 
 type NebulaGroup struct {
-	Group_name  GroupName    `json:"group_name"`
-	Group_hosts []NebulaHost `json:"group_hosts"`
+	Group_name  GroupName    `json:"group_name" dhall:"group_name"`
+	Group_hosts []NebulaHost `json:"group_hosts" dhall:"group_hosts,List"`
 }
 
-type RuleDirection string
+type RuleDirection dhall.UnionType
 
-const (
-	IN  RuleDirection = "In"
-	OUT RuleDirection = "Out"
-)
+type ConnectionTarget dhall.UnionType
 
-type ConnectionTarget []NebulaHost
+type TrafficTarget dhall.UnionType
 
 type PortRange struct {
-	R_from uint32 `json:"r_from"`
-	R_to   uint32 `json:"r_to"`
+	R_from dhall.NaturalLit `json:"r_from" dhall:"r_from"`
+	R_to   dhall.NaturalLit `json:"r_to" dhall:"r_to"`
 }
 
-type Port PortRange
+type Port dhall.UnionType
 
-type Proto string
-
-const (
-	ANYPROTO Proto = "any"
-	TCP      Proto = "tcp"
-	UDP      Proto = "udp"
-	ICMP     Proto = "icmp"
-)
+type Proto dhall.UnionType
 
 type UnidirectionalConnection struct {
-	Uc_port  Port             `json:"uc_port"`
-	Uc_proto Proto            `json:"uc_proto"`
-	From     ConnectionTarget `json:"from"`
-	To       ConnectionTarget `json:"to"`
-	Ca_name  string           `json:"ca_name,omitempty"`
-	Ca_sha   string           `json:"ca_sha,omitempty"`
+	Uc_port  Port               `json:"uc_port" dhall:"uc_port"`
+	Uc_proto Proto              `json:"uc_proto" dhall:"uc_proto"`
+	From     ConnectionTarget   `json:"from" dhall:"from"`
+	To       ConnectionTarget   `json:"to" dhall:"to"`
+	Ca_name  dhall.PlainTextLit `json:"ca_name,omitempty" dhall:"ca_name,Optional"`
+	Ca_sha   dhall.PlainTextLit `json:"ca_sha,omitempty" dhall:"ca_sha,Optional"`
 }
 
 type NebulaConnection struct {
-	Connections []UnidirectionalConnection `json:"connections"`
+	Connections []UnidirectionalConnection `json:"connections" dhall:"connections,List"`
 }
 
-type Cipher string
+type FirewallRule struct {
+	Fr_port        Port               `json:"fr_port" dhall:"fr_port"`
+	Fr_proto       Proto              `json:"fr_proto" dhall:"fr_proto"`
+	Traffic_target TrafficTarget      `json:"traffic_target" dhall:"traffic_target"`
+	Direction      RuleDirection      `json:"direction" dhall:"direction"`
+	Fr_ca_name     dhall.PlainTextLit `json:"fr_ca_name,omitempty" dhall:"fr_ca_name,Optional"`
+	Fr_ca_sha      dhall.PlainTextLit `json:"fr_ca_sha,omitempty" dhall:"fr_ca_sha,Optional"`
+}
 
-const (
-	AES        Cipher = "AES"
-	Chachapoly Cipher = "Chachapoly"
-)
+type Cipher dhall.UnionType
 
 type NebulaNetwork struct {
-	Hosts []NebulaHost `json:"hosts"`
+	Hosts []NebulaHost `json:"hosts" dhall:"hosts,List"`
 
-	Groups []NebulaGroup `json:"groups"`
+	Groups []NebulaGroup `json:"groups" dhall:"groups,List"`
 
-	Connections []NebulaConnection `json:"connections"`
+	Connections []NebulaConnection `json:"connections" dhall:"connections,List"`
 
-	Blocklist []string `json:"blocklist"`
+	Blocklist []dhall.PlainTextLit `json:"blocklist" dhall:"blocklist,List"`
 
-	Cipher Cipher `json:"cipher"`
+	Cipher Cipher `json:"cipher" dhall:"cipher"`
 
-	IpMask uint32 `json:"ip_mask"`
+	IpMask dhall.NaturalLit `json:"ip_mask" dhall:"ip_mask"`
 }

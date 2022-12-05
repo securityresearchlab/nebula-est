@@ -25,3 +25,5 @@ _testmain.go
 
 /third-party/
 /configs/
+/build/
+/examples/

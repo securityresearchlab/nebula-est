@@ -10,7 +10,7 @@ package models
 
 type NestAuth struct {
 	//The future hostname of the client in the Nebula network
-	Hostname string `json:"Hostname,omitempty"`
+	Hostname string `json:"hostname"`
 	//The HMAC of the hostname, to be verified by the NEST service
-	Secret []byte `json:"Secret,omitempty"`
+	Secret []byte `json:"secret"`
 }

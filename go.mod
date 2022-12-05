@@ -3,6 +3,7 @@ module github.com/m4rkdc/nebula_est
 go 1.19
 
 require (
+	github.com/go-playground/assert/v2 v2.0.1
 	github.com/philandstuff/dhall-golang/v6 v6.0.2
 	github.com/slackhq/nebula v1.6.1
 )
