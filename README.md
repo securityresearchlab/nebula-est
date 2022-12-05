@@ -156,16 +156,7 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
 
 ## Project structure
 
-- `app`: folder containing services and client buisness logic
-  
-  - `nest_ca`
-    - `api`: folder containing the documentation for this service REST API
-  - `nest_config`
-    - `api`: folder containing the documentation for this service REST API
-  - `nest_service`
-    - `api`: folder containing the documentation for this service REST API
-  - `nest_client`
-    - `api`: folder containing the documentation for this service REST API
+- `api`: folder containing the documentation for the system REST API 
 
 - `build`: target folder for compiled files
 
@@ -184,6 +175,12 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
   
   - `models`: folder containing the system model
   - `utils`: miscellaneous utilities
+  - `logic`: buisness logic for the 3 services of the system
+    - `nest_ca`
+   
+    - `nest_config`
+    
+    - `nest_service`
 
 ## Installation
 
