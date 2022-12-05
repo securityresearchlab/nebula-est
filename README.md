@@ -8,7 +8,7 @@ A Client who wants to establish a Nebula Mesh VPN has no officially provided way
 Nebula Mesh VPN in an Industrial Control System (or IIoT) settings, i.e., deploying the Nebula certs. and configs. on PLCs (programmable logic controllers), SBC (Single Board Computers, i.e., Raspberry Pis) and EWS (Engineering Workstations), to create secure, peer to peer networks between these crucial assets, that will communicate over secure and isolated channels instead of the probably unsecure and unsegregated OT network. It can also help enforce Zero Trust principles by leveraging the identity-based routing and communication infrastructure provided by the Nebula Mesh VPN.
 
 System Architecture
-![](./docs/NEST System architecture.png)
+![](./docs/NEST%20System%20architecture.png)
 
 Clients will access the NEST service through requests to REST API endpoints over a secure transport. Server side authentication will be provided by a typical x509 certificate, which can be self signed or signed by a private CA already present in the corporate network. Either way, the CA certificate useful to verify the message sent by the NEST service will be provided at deployment time to the clients. For condidentiality, one of these TLS ciphers will be used:
 
