@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: Nebula Configuration service for NEST (Nebula Enrollment over Secure Transport) - OpenAPI 3.0
+  description: |-
+    This is a simple Nebula Configuration service that generates Nebula configuration files from Dhall configuration files on behalf of the NEST service
+  contact:
+    email: gianmarco.decola@studio.unibo.it
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.3.1
+externalDocs:
+ description: Find out more about NEST
+  url: https://github.com/m4rkdc/nebula_est/tree/dev/app/nest_service/api/nebula_est-openapi.yaml
+servers:
+- url: "http://nest_config/"
+
+tags:
+- name: hostnames
+  description: Operations about valid Nebula hostnames for the future Nebula network (i.e. getting the list of valid hostnames).
+- name: configs
+  description: Operations about the Nebula Configuration files (i.e. generating the Nebula config file for a valid hostname.).
+paths:
+  /hostnames:
+    get:
+      tags:
+      - hostnames
+      summary: Return valid hostnames
+      description: Return the valid hostnames for the future Nebula network
+      operationId: getValidHostnames
+      responses:
+        "200":
+          description: "Successful operation: valid hostname"
+          content:
+            application/json:
+              schema: 
+                type: array
+                items:
+                  $ref : '#/components/schemas/hostname'    
+        "500":
+          description: Error reading the Dhall configuration file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 500
+                message: Internal Server Error. Ther was an error reading the Dhall configuration file
+
+  /configs/:hostname:
+    get:
+      tags:
+      - configs
+      summary: Generate a Nebula configuration file
+      description: Generate the Nebula configuration file for the specified hostname
+      operationId: getConfig
+      parameters:
+      - name: hostname
+        in: path
+        description: Hostname of the client
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/hostname'
+      responses:
+        "201":
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref : '#/components/schemas/NebulaConfiguration'
+        "400":
+          description: "Bad Request: hostname is not provided"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 400
+                message: "Bad Request: hostname is not provided"
+        "500":
+          description: Error generating the Nebula conf
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 500
+                message: "Internal Server Error. There was an error generating the Nebula configuration file"
+  /validate:
+    post:
+      tags:
+      - configs
+      summary: Validate a Nebula certificate
+      description: "Validate a given Nebula certificate against the dhall configuration file for coherence"
+      operationId: validateCertificate
+      requestBody:
+        description: The newly generated Nebula Certificate to be validated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NebulaCertificate'
+        required: true
+      responses:
+        "200":
+          description: "Successful operation: certificate validated"                
+        "400":
+          description: "Certificate is not valid"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 400
+                message: Certificate could not be validated
+        "403":
+          description: The hostname of the applicant (the one in the Nebula CSR) is
+            different from the one in the URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 403
+                message: Unhautorized. The hostname in the URL and the one in the
+                  Nebula CSR are different.
+        "500":
+          description: Error validating the Nebula conf
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: 500
+                message: "Internal Server Error. There was an error validating the Nebula configuration file"
+  
+components:
+  schemas:
+    hostname:
+      type: string
+      format: hostname
+      example: lighthouse1   
+    NebulaConfiguration:
+      type: string
+      format: binary
+    NebulaCertificate:
+      type: object
+      properties:
+        NebulaCertificateDetails:
+          $ref: '#/components/schemas/Details'
+        Signature:
+          type: string
+          format: binary
+      example:
+        Signature: ""
+        NebulaCertificateDetails:
+          Subnets:
+          - Subnets
+          - Subnets
+          Issuer: Issuer
+          Groups:
+          - Groups
+          - Groups
+          PublicKey: ""
+          IsCA: true
+          NotBefore:
+            ext: 6
+            loc:
+              extend: extend
+              cacheEnd: 7
+              cacheStart: 2
+              tx:
+              - isstd: true
+                isutc: true
+                index: 5
+                when: 5
+              - isstd: true
+                isutc: true
+                index: 5
+                when: 5
+              name: name
+              zones:
+              - offset: 1
+                isDST: true
+                name: name
+              - offset: 1
+                isDST: true
+                name: name
+              cacheZone: null
+            wall: 0
+          NotAfter: null
+          Ips:
+          - Ips
+          - Ips
+          InvertedGroups: ""
+          Name: Name
+    Details:
+      type: object
+      properties:
+        Name:
+          type: string
+        Ips:
+          type: array
+          items:
+            type: string
+            format: ipv4 | ipv6
+        Subnets:
+          type: array
+          items:
+            type: string
+            format: ipv4 | ipv6
+        Groups:
+          type: array
+          items:
+            type: string
+        NotBefore:
+          $ref: '#/components/schemas/Time'
+        NotAfter:
+          $ref: '#/components/schemas/Time'
+        PublicKey:
+          type: string
+          format: binary
+        IsCA:
+          type: boolean
+        Issuer:
+          type: string
+        InvertedGroups:
+          type: object
+          additionalProperties: true
+      example:
+        Subnets:
+        - Subnets
+        - Subnets
+        Issuer: Issuer
+        Groups:
+        - Groups
+        - Groups
+        PublicKey: ""
+        IsCA: true
+        NotBefore:
+          ext: 6
+          loc:
+            extend: extend
+            cacheEnd: 7
+            cacheStart: 2
+            tx:
+            - isstd: true
+              isutc: true
+              index: 5
+              when: 5
+            - isstd: true
+              isutc: true
+              index: 5
+              when: 5
+            name: name
+            zones:
+            - offset: 1
+              isDST: true
+              name: name
+            - offset: 1
+              isDST: true
+              name: name
+            cacheZone: null
+          wall: 0
+        NotAfter: null
+        Ips:
+        - Ips
+        - Ips
+        InvertedGroups: ""
+        Name: Name
+    Time:
+      type: object
+      properties:
+        wall:
+          type: integer
+          format: uint64
+        ext:
+          type: integer
+          format: int64
+        loc:
+          $ref: '#/components/schemas/Location'
+      example:
+        ext: 6
+        loc:
+          extend: extend
+          cacheEnd: 7
+          cacheStart: 2
+          tx:
+          - isstd: true
+            isutc: true
+            index: 5
+            when: 5
+          - isstd: true
+            isutc: true
+            index: 5
+            when: 5
+          name: name
+          zones:
+          - offset: 1
+            isDST: true
+            name: name
+          - offset: 1
+            isDST: true
+            name: name
+          cacheZone: null
+        wall: 0
+    Location:
+      type: object
+      properties:
+        name:
+          type: string
+        zones:
+          type: array
+          items:
+            $ref: '#/components/schemas/zone'
+        tx:
+          type: array
+          items:
+            $ref: '#/components/schemas/zoneTrans'
+        extend:
+          type: string
+        cacheStart:
+          type: integer
+          format: int64
+        cacheEnd:
+          type: integer
+          format: int64
+        cacheZone:
+          $ref: '#/components/schemas/zone'
+      example:
+        extend: extend
+        cacheEnd: 7
+        cacheStart: 2
+        tx:
+        - isstd: true
+          isutc: true
+          index: 5
+          when: 5
+        - isstd: true
+          isutc: true
+          index: 5
+          when: 5
+        name: name
+        zones:
+        - offset: 1
+          isDST: true
+          name: name
+        - offset: 1
+          isDST: true
+          name: name
+        cacheZone: null
+    zone:
+      type: object
+      properties:
+        name:
+          type: string
+        offset:
+          type: integer
+        isDST:
+          type: boolean
+      example:
+        offset: 1
+        isDST: true
+        name: name
+    zoneTrans:
+      type: object
+      properties:
+        when:
+          type: integer
+          format: int64
+        index:
+          type: integer
+          format: uint8
+        isstd:
+          type: boolean
+        isutc:
+          type: boolean
+      example:
+        isstd: true
+        isutc: true
+        index: 5
+        when: 5
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    ConfResponse:
+      type: object
+      properties:
+        nebulaConf:
+          $ref: '#/components/schemas/NebulaConfiguration'
+        groups:
+          type: array
+          items:
+            type: string
+        ip:
+          type: string
+          format: ipv4 | ipv6
+          

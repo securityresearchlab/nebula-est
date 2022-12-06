@@ -1,0 +1,72 @@
+# This is the nebula example configuration file. You must edit, at a minimum, the static_host_map, lighthouse, and firewall sections
+# Some options in this file are HUPable, including the pki section. (A HUP will reload credentials from disk without affecting existing tunnels)
+
+# PKI defines the location of credentials for this node. Each of these can also be inlined by using the yaml ": |" syntax.
+pki:
+  # The CAs that are accepted by this node. Must contain one or more certificates created by 'nebula-cert ca'
+  ca: ca.crt
+  cert: nest_ca.crt
+  key: nest_ca.key
+
+#static_host_map:
+#  "192.168.100.1": ["100.64.22.11:4242"]
+
+
+lighthouse:
+  am_lighthouse: false
+  interval: 60
+  hosts:
+  #  - "192.168.100.1"
+
+listen:
+  host: 0.0.0.0
+  port: 4242
+
+punchy: true
+punch-back: true
+respond: true
+delay: 1s
+
+cipher: chachapoly
+
+relay:
+  am_relay: false
+  use_relays: true
+
+tun:
+  disabled: false
+  dev: nebula1
+  drop_local_broadcast: false
+  drop_multicast: false
+  tx_queue: 500
+  mtu: 1300
+  routes:
+  unsafe_routes:
+
+logging:
+  level: info
+  format: text
+
+firewall:
+  conntrack:
+    tcp_timeout: 12m
+    udp_timeout: 3m
+    default_timeout: 10m
+
+  outbound:
+    - port: 61616
+      proto: tcp
+      host: nest_config
+
+    - port: 5353
+      proto: tcp
+      host: nest_ca
+
+  inbound:
+    - port: any
+      proto: tcp
+      host: nest_ca
+
+    - port: any
+      proto: tcp
+      host: nest_config 

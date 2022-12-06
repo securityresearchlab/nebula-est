@@ -174,10 +174,13 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
 - `pkg`: folder containing public code used throughout the project
   
   - `models`: folder containing the system model
+  
   - `utils`: miscellaneous utilities
+  
   - `logic`: buisness logic for the 3 services of the system
+    
     - `nest_ca`
-   
+    
     - `nest_config`
     
     - `nest_service`
