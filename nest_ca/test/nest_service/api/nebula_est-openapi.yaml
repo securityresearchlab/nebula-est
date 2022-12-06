@@ -1,0 +1,8 @@
+    NestAuth:
+      type: object
+      properties:
+        Hostname:
+          $ref: '#/components/schemas/hostname'
+        Secret:
+          type: string
+          format: binary

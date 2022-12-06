@@ -156,52 +156,93 @@ This sequence diagram shows a Re-enrollment session by the client. This can be d
 
 ## Project structure
 
-- `api`: folder containing the documentation for the system REST API 
-
-- `build`: target folder for compiled files
-
-- `cmd`: folder containing the main entry points for each service and client
+- `nest_ca`
   
-  - `nest_ca`
-  - `nest_config`
-  - `nest_service`
-  - `nest_client`
+  - `api`: folder containing the documentation for this service's REST API
+  
+  - `build`: target folder for compiled files
+  
+  - `cmd`: folder containing the main entrypoint for this service
+  
+  - `pkg`: folder containing public code used throughout the module, and exported in the workspace
+    
+    - `logic`: buisness logic for this service
+  
+  - `test`: folder containing service files for testing purposes
 
-- `configs`: configuration files for every service and client (to be added in deployment)
+- `nest_config`
+  
+  - `api`: folder containing the documentation for this service's REST API
+  
+  - `build`: target folder for compiled files
+  
+  - `cmd`: folder containing the main entrypoint for this service
+  
+  - `pkg`: folder containing public code used throughout the module, and exported in the workspace
+    
+    - `logic`: buisness logic for this service
+  
+  - `test`: folder containing service files for testing purposes
+
+- `nest_service`
+  
+  - `api`: folder containing the documentation for this service's REST API
+  
+  - `build`: target folder for compiled files
+  
+  - `cmd`: folder containing the main entrypoint for this service
+  
+  - `pkg`: folder containing public code used throughout the module, and exported in the workspace
+    
+    - `models`: folder containing the system model
+    
+    - `utils`: miscellaneous utilities
+    
+    - `logic`: buisness logic for this service
+  
+  - `test`:  folder containing service files for testing purposes and testing utilities for the workspace
+
+- `nest_client`
+  
+  - `build`: target folder for compiled files
+  
+  - `cmd`: folder containing the main entrypoint for this client
 
 - `docs`: general documetation for the project
 
-- `pkg`: folder containing public code used throughout the project
-  
-  - `models`: folder containing the system model
-  
-  - `utils`: miscellaneous utilities
-  
-  - `logic`: buisness logic for the 3 services of the system
-    
-    - `nest_ca`
-    
-    - `nest_config`
-    
-    - `nest_service`
+- `examples`: configuration files examples for the system
 
 ## Installation
 
 To build NEST from source just run
 
 ```bash
-go build -o ./build ./cmd/*/
+./nest_build.sh
 ```
 
-from the root directory of the project (where the go.mod and go.sum files are).
+from the root directory of the project (where the go.work file is).
 
 4 executables will be compiled and saved into the build directory (one for each service and one for the client).
 
-If you want NEST to be installed into the default go folders, go ahead and launch
+If you want to deploy the NEST system using Docker, and you want to build the Docker images by yourself, then 
+you have to run the
 
 ```bash
-go install ./cmd/*/
+go build -o ./build cmd/*
 ```
+
+command from all the root directories of each project module (e.g. nest_service, nest_config, nest_ca, nest_client).
+This will create a binary file in each build/ subdirectory of each go module. Then, still from the root directory of each module, you can run the
+
+```bash
+docker build -t <module_name> .
+e.g.
+docker build -t nest_service .
+```
+
+command to build a local docker image of each service/client.
+
+To automate this procedure, the `nest_build_docker.sh` script is provided.
 
 ## Deployment
 

@@ -13,7 +13,7 @@ import (
 	"github.com/go-playground/assert/v2"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
-	nest_test "github.com/m4rkdc/nest_service/nebula_est/test"
+	nest_test "github.com/m4rkdc/nebula_est/nest_service/test"
 )
 
 func sendGetConfig(t *testing.T, r *gin.Engine, endpoint models.Route, hostname string) *httptest.ResponseRecorder {
@@ -49,7 +49,7 @@ func TestGetConfig(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
 	//Third test: success
-	utils.Dhall_dir = "../../../test/nest_config/dhall/"
+	utils.Dhall_dir = "../../test/dhall/"
 	utils.Dhall_configuration = utils.Dhall_dir + "nebula/nebula_conf.dhall"
 	resp = sendGetConfig(t, r, endpoint, hostname)
 	assert.Equal(t, http.StatusOK, resp.Code)

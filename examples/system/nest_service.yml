@@ -1,0 +1,47 @@
+cipher: chachapoly
+firewall:
+  conntrack:
+    default_timeout: 10m
+    max_connections: 30000
+    tcp_timeout: 12m
+    udp_timeout: 3m
+  inbound:
+  - host: any
+    port: any
+    proto: tcp
+  outbound:
+  - host: nest_ca
+    port: 53535
+    proto: tcp
+lighthouse:
+  am_lighthouse: false
+  hosts:
+  - '192.168.100.1'
+  - '192.168.100.2'
+  interval: 60
+listen:
+  host: '0.0.0.0'
+  port: 4242
+logging:
+  format: text
+  level: info
+pki:
+  ca: /home/nest_service/config/nebula/nest_system_ca.crt
+  cert: /home/nest_service/config/nebula/nest_service.crt
+  key: /home/nest_service/config/nebula/nest_service.key
+punchy:
+  punch: true
+  respond: true
+relay:
+  am_relay: false
+  use_relays: false
+static_host_map:
+  - '192.168.80.1': ["nest_ca:4242"]
+  - '192.168.80.2': ["nest_config:4242"]
+tun:
+  dev: nebula
+  disabled: false
+  drop_local_broadcast: false
+  drop_multicast: false
+  mtu: 1300
+  tx_queue: 500

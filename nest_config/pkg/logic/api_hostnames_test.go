@@ -22,7 +22,7 @@ func TestGetValidHostnames(t *testing.T) {
 	r.ServeHTTP(resp, reqError)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
-	utils.Dhall_dir = "../../../configs/nest_config/dhall/"
+	utils.Dhall_dir = "../../configs/dhall/"
 	reqOk, _ := http.NewRequest(endpoint.Method, endpoint.Pattern, nil)
 	resp = httptest.NewRecorder()
 	r.ServeHTTP(resp, reqOk)

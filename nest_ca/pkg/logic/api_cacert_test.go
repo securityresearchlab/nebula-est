@@ -23,7 +23,7 @@ func TestCacerts(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
 	//Second test: success
-	utils.Ca_keys_path = "../../../test/nest_ca/config/keys/"
+	utils.Ca_keys_path = "../../test/config/keys/"
 	certs, _ := getCaCertFromFile()
 	reqOk, _ := http.NewRequest(endpoint.Method, endpoint.Pattern, nil)
 	resp = httptest.NewRecorder()

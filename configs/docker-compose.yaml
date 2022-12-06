@@ -1,0 +1,64 @@
+version: '3.9'
+
+services:
+  nest_config:
+    container_name: nest_config
+    image: nest_config
+    restart: always
+    volumes:
+      - ./nest_config/:/home/nest_config/mnt
+    env_file:
+      - nest_config.env
+    stdin_open: true
+    tty: true
+    networks:
+      NESTSystemNetwork:
+        ipv4_address: 192.168.168.5
+  
+  nest_ca:
+    container_name: nest_ca
+    image: nest_ca
+    restart: always
+    volumes:
+      - ./nest_ca/:/home/nest_ca/mnt
+    env_file:
+      - nest_ca.env
+    stdin_open: true
+    tty: true
+    depends_on:
+      - nest_config
+    networks:
+      NESTSystemNetwork:
+        ipv4_address: 192.168.168.4
+    
+  nest_service:
+    container_name: nest_service
+    image: nest_service
+    restart: always
+    volumes:
+      - ./nest_service/:/home/nest_service/mnt
+    env_file:
+      - nest_service.env
+    ports: 
+      - 8080:8080
+    stdin_open: true
+    tty: true
+    depends_on:
+      - nest_ca
+      - nest_config
+    networks:
+      NESTSystemNetwork:
+        ipv4_address: 192.168.168.3
+
+networks:
+  NESTSystemNetwork:
+    name: NESTSystemNetwork
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.168.0/24
+          gateway: 192.168.168.1
+    
+
+
+      

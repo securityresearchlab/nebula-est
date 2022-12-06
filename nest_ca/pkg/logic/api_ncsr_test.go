@@ -48,16 +48,16 @@ func TestCertificateSign(t *testing.T) {
 	assert.Equal(t, errBytes, resp.Body.Bytes())
 
 	//Second test: enroll csr success
-	utils.Certificates_path = "../../../test/nest_ca/certificates/"
-	utils.Ca_bin = "../../../test/nest_ca/config/bin/"
-	utils.Ca_keys_path = "../../../test/nest_ca/config/keys/"
+	utils.Certificates_path = "../../test/certificates/"
+	utils.Ca_bin = "../../test/config/bin/"
+	utils.Ca_keys_path = "../../test/config/keys/"
 	csr.Groups = append(csr.Groups, "all")
 	csr.Hostname = "lighthouse"
 	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
 	csr.Ip = "192.168.100.1/24"
 	csr.Rekey = false
 	csr.ServerKeygen = false
-	b, _ := os.ReadFile("../../../test/lighthouse.pub")
+	b, _ := os.ReadFile("../../test/lighthouse.pub")
 	csr.PublicKey, _, _ = cert.UnmarshalX25519PublicKey(b)
 	resp = sendCertificateSign(t, r, endpoint, &csr)
 	fmt.Println(resp.Body)
@@ -88,16 +88,16 @@ func TestGenerateKeys(t *testing.T) {
 	assert.Equal(t, errBytes, resp.Body.Bytes())
 
 	//Second test: serverkeygen enroll success
-	utils.Certificates_path = "../../../test/nest_ca/certificates/"
-	utils.Ca_bin = "../../../test/nest_ca/config/bin/"
-	utils.Ca_keys_path = "../../../test/nest_ca/config/keys/"
+	utils.Certificates_path = "../../test/certificates/"
+	utils.Ca_bin = "../../test/config/bin/"
+	utils.Ca_keys_path = "../../test/config/keys/"
 	csr.Groups = append(csr.Groups, "all")
 	csr.Hostname = "lighthouse"
 	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
 	csr.Ip = "192.168.100.1/24"
 	csr.Rekey = false
 	csr.ServerKeygen = true
-	b, _ := os.ReadFile("../../../test/lighthouse.pub")
+	b, _ := os.ReadFile("../../test/lighthouse.pub")
 	csr.PublicKey, _, _ = cert.UnmarshalX25519PublicKey(b)
 	resp = sendCertificateSign(t, r, endpoint, &csr)
 	fmt.Println(resp.Body)

@@ -23,7 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-/third-party/
-/configs/
-/build/
-/examples/
+*/build/
+configs/*
+!configs/*.yaml
+!configs/*.sh
