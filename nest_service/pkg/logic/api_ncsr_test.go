@@ -16,7 +16,7 @@ import (
 	nest_config "github.com/m4rkdc/nebula_est/nest_config/pkg/logic"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
-	nest_test "github.com/m4rkdc/nest_service/nebula_est/test"
+	nest_test "github.com/m4rkdc/nebula_est/nest_service/test"
 	"github.com/slackhq/nebula/cert"
 )
 
