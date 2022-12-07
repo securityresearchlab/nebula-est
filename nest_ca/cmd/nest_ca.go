@@ -13,7 +13,7 @@ import (
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m4rkdc/nebula_est/nest_ca/pkg/logic"
+	nest_ca "github.com/m4rkdc/nebula_est/nest_ca/pkg/logic"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 )
 
@@ -48,7 +48,7 @@ func main() {
 		utils.Nebula_folder = val
 	}
 
-	fmt.Println("Service started")
+	fmt.Println("NEST CA service: starting setup")
 
 	if _, err := os.Stat(utils.Certificates_path); err != nil {
 		fmt.Printf("%s doesn't exist. Creating the folder\n", utils.Certificates_path)
@@ -104,7 +104,7 @@ func main() {
 		os.Exit(9)
 	}
 
-	fmt.Println("Service setup finished")
+	fmt.Println("NEST CA service: setup finished")
 
 	router := gin.Default()
 	utils.SetupLogger(router, utils.Log_file)

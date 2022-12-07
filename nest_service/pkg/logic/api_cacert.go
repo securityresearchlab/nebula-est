@@ -30,7 +30,9 @@ func getCaCerts() ([]cert.NebulaCertificate, error) {
 
 	var error_response *models.ApiError
 	if json.Unmarshal(b, error_response) != nil {
-		return nil, error_response
+		if error_response != nil {
+			return nil, error_response
+		}
 	}
 	var response []cert.NebulaCertificate
 	err = json.Unmarshal(b, &response)

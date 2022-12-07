@@ -9,8 +9,10 @@ services:
       - ./nest_config/:/home/nest_config/mnt
     env_file:
       - nest_config.env
-    stdin_open: true
-    tty: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     networks:
       NESTSystemNetwork:
         ipv4_address: 192.168.168.5
@@ -23,8 +25,10 @@ services:
       - ./nest_ca/:/home/nest_ca/mnt
     env_file:
       - nest_ca.env
-    stdin_open: true
-    tty: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     depends_on:
       - nest_config
     networks:
@@ -41,8 +45,10 @@ services:
       - nest_service.env
     ports: 
       - 8080:8080
-    stdin_open: true
-    tty: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     depends_on:
       - nest_ca
       - nest_config

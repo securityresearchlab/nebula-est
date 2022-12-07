@@ -13,14 +13,15 @@ import (
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
-	"github.com/m4rkdc/nebula_est/nest_config/pkg/logic"
+	nest_config "github.com/m4rkdc/nebula_est/nest_config/pkg/logic"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 )
 
 // generateAllNebulaConfigs generates Nebula configuration files for every client using the dhall-nebula tool
 func generateAllNebulaConfigs() error {
-	cmd := exec.Command(utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir "+utils.Dhall_dir+" --configFileName "+utils.Dhall_configuration+" config --configsPath "+utils.Conf_gen_dir)
-	if err := cmd.Run(); err != nil {
+	out, err := exec.Command(utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir", utils.Dhall_dir, "--configFileName", utils.Dhall_configuration, "config", "--configsPath", utils.Conf_gen_dir).CombinedOutput()
+	if err != nil {
+		fmt.Println("Error in dhall-nebula: " + string(out))
 		return err
 	}
 
@@ -58,7 +59,7 @@ func main() {
 		utils.Nebula_folder = val
 	}
 
-	fmt.Println("Service started")
+	fmt.Println("NEST config service: starting setup")
 
 	info, err := os.Stat(utils.Dhall_dir + "bin/dhall-nebula")
 	if err != nil {
@@ -68,17 +69,13 @@ func main() {
 	if !utils.IsExecOwner(info.Mode()) {
 		os.Chmod(utils.Dhall_dir+"bin/dhall-nebula", 0700)
 	}
-	info, err = os.Stat(utils.Dhall_configuration)
+	info, err = os.Stat(utils.Dhall_dir + utils.Dhall_configuration)
 	if err != nil {
 		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the dhall-nebula bin to the service before starting it\nExiting...", utils.Dhall_configuration)
 		os.Exit(2)
 	}
 	if !utils.IsRWOwner(info.Mode()) {
-		os.Chmod(utils.Dhall_configuration, 0600)
-	}
-	if err = generateAllNebulaConfigs(); err != nil {
-		fmt.Printf("Could not generate Nebula configuration files\n")
-		os.Exit(3)
+		os.Chmod(utils.Dhall_dir+utils.Dhall_configuration, 0600)
 	}
 
 	if _, err := os.Stat(utils.Nebula_folder + "nest_config.crt"); err != nil {
@@ -103,8 +100,12 @@ func main() {
 		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
 		os.Exit(9)
 	}
+	if err = generateAllNebulaConfigs(); err != nil {
+		fmt.Println("Could not generate Nebula configuration files: " + err.Error())
+		os.Exit(3)
+	}
 
-	fmt.Println("Service setup finished")
+	fmt.Println("NEST config service: setup finished")
 
 	router := gin.Default()
 	utils.SetupLogger(router, utils.Log_file)

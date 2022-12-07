@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:3.17
 WORKDIR /home/nest_service
 COPY ./build/nest_service .
 EXPOSE 8080/tcp

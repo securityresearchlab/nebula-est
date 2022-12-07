@@ -33,14 +33,14 @@ mkdir log config
 cd config
 mkdir tls && cd tls
 # If you want to self-sign your nest_service tls certificate
-#openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
-#openssl req -new -x509 -key nest_service-key.pem -out nest_service-crt.pem -days 365
+openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+openssl req -new -x509 -key nest_service-key.pem -out nest_service-crt.pem -days 365
 
 # If you want to use an already created internal CA, first copy it in the configs folder, then
-openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
-openssl req -new -sha256 -key nest_service-key.pem -out nest_service.csr
-openssl x509 -signkey ../../../ca-key.pem -in nest_service.csr -req -days 365 -out nest_service-crt.pem
-rm nest_service.csr
+#openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+#openssl req -new -sha256 -key nest_service-key.pem -out nest_service.csr
+#openssl x509 -signkey ../../../ca-key.pem -in nest_service.csr -req -days 365 -out nest_service-crt.pem
+#rm nest_service.csr
 
 cd ../
 mkdir nebula && cd nebula

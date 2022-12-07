@@ -58,7 +58,7 @@ If not, it creates it and populates it by sending a request to the nest_config s
 */
 func checkHostnamesFile() error {
 	if _, err := os.Stat(utils.Hostnames_file); err != nil {
-		log.Printf("%s doesn't exist. Creating it and requesting the cert from Nebula CA service\n", utils.Hostnames_file)
+		log.Printf("%s doesn't exist. Creating it and requesting the valid hostnames from Nebula conf service\n", utils.Hostnames_file)
 		hostnames, err := getHostnames()
 		if err != nil {
 			log.Fatalf("There has been an error with the hostnames request: %v", err.Error())
@@ -140,15 +140,7 @@ func main() {
 	if val, ok := os.LookupEnv("TLS_FOLDER"); ok {
 		utils.TLS_folder = val
 	}
-
-	if err := nest_service.CheckCaCertFile(); err != nil {
-		fmt.Println("Could not contact the CA service")
-		os.Exit(2)
-	}
-	if err := checkHostnamesFile(); err != nil {
-		fmt.Println("Could not contact the Conf service")
-		os.Exit(3)
-	}
+	fmt.Println("NEST service: starting setup")
 
 	if _, err := os.Stat("/ncsr"); err != nil {
 		if err := os.Mkdir("/ncsr", 0700); err != nil {
@@ -181,6 +173,15 @@ func main() {
 		os.Exit(9)
 	}
 
+	if err := nest_service.CheckCaCertFile(); err != nil {
+		fmt.Println("Could not contact the CA service: " + err.Error())
+		os.Exit(2)
+	}
+	if err := checkHostnamesFile(); err != nil {
+		fmt.Println("Could not contact the Conf service: " + err.Error())
+		os.Exit(3)
+	}
+
 	if _, err := os.Stat(utils.TLS_folder + "nest_key.pem"); err != nil {
 		fmt.Printf("Cannot find NEST service TLS key\n")
 		os.Exit(10)
@@ -202,7 +203,7 @@ func main() {
 	}
 
 	tls_config := setupTLS()
-
+	fmt.Println("NEST service: setup finished")
 	router := gin.Default()
 	utils.SetupLogger(router, utils.Log_file)
 

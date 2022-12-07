@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:3.17
 WORKDIR /home/nest_ca
 COPY ./build/nest_ca .
 EXPOSE 4242/udp

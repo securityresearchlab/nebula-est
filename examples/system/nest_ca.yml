@@ -23,9 +23,9 @@ logging:
   format: text
   level: info
 pki:
-  ca: /home/nest_ca/config/nebula/nest_system_ca.crt
-  cert: /home/nest_ca/config/nebula/nest_ca.crt
-  key: /home/nest_ca/config/nebula/nest_ca.key
+  ca: /home/nest_ca/mnt/config/nebula/nest_system_ca.crt
+  cert: /home/nest_ca/mnt/config/nebula/nest_ca.crt
+  key: /home/nest_ca/mnt/config/nebula/nest_ca.key
 punchy:
   punch: true
   respond: true
