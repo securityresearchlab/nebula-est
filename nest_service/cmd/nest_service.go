@@ -17,9 +17,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	nest_service "github.com/m4rkdc/nebula_est/nest_service/pkg/logic"
@@ -29,9 +30,30 @@ import (
 
 // getHostnames sends an http request to the nest_config service over a Nebula network to get the valid hostnames.
 func getHostnames() ([]string, error) {
-	resp, err := http.Get("http://" + utils.Conf_service_ip + ":" + utils.Conf_service_port + "/hostnames")
-	if err != nil {
-		return nil, err
+	var resp *http.Response
+	var err error
+	var error_response *models.ApiError
+	for {
+		resp, err = http.Get("http://" + utils.Conf_service_ip + ":" + utils.Conf_service_port + "/hostnames")
+		if err != nil {
+			urlErr := err.(*url.Error)
+			if urlErr.Timeout() {
+				fmt.Println("NEST config is not ready, waiting and retrying in 1 second")
+				time.Sleep(1 * time.Second)
+				continue
+			} else {
+				b, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return nil, err
+				}
+				if json.Unmarshal(b, error_response) != nil {
+					if error_response != nil {
+						return nil, error_response
+					}
+				}
+			}
+		}
+		break
 	}
 
 	b, err := io.ReadAll(resp.Body)
@@ -39,10 +61,6 @@ func getHostnames() ([]string, error) {
 		return nil, err
 	}
 
-	var error_response *models.ApiError
-	if json.Unmarshal(b, error_response) != nil {
-		return nil, error_response
-	}
 	var response []string
 	err = json.Unmarshal(b, &response)
 	if err != nil {
@@ -58,16 +76,16 @@ If not, it creates it and populates it by sending a request to the nest_config s
 */
 func checkHostnamesFile() error {
 	if _, err := os.Stat(utils.Hostnames_file); err != nil {
-		log.Printf("%s doesn't exist. Creating it and requesting the valid hostnames from Nebula conf service\n", utils.Hostnames_file)
+		fmt.Printf("%s doesn't exist. Creating it and requesting the valid hostnames from Nebula conf service\n", utils.Hostnames_file)
 		hostnames, err := getHostnames()
 		if err != nil {
-			log.Fatalf("There has been an error with the hostnames request: %v", err.Error())
+			fmt.Printf("There has been an error with the hostnames request: %v", err.Error())
 			return err
 		}
 
-		file, err := os.OpenFile(utils.Hostnames_file, os.O_WRONLY|os.O_TRUNC, 0600)
+		file, err := os.OpenFile(utils.Hostnames_file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 		if err != nil {
-			log.Fatalf("Could not write to file: %v", err)
+			fmt.Printf("Could not write to file: %v", err)
 			return err
 		}
 		defer file.Close()
@@ -88,6 +106,7 @@ func setupTLS() *tls.Config {
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		},
 	}
 	return &tls_config
@@ -142,8 +161,8 @@ func main() {
 	}
 	fmt.Println("NEST service: starting setup")
 
-	if _, err := os.Stat("/ncsr"); err != nil {
-		if err := os.Mkdir("/ncsr", 0700); err != nil {
+	if _, err := os.Stat(utils.Ncsr_folder); err != nil {
+		if err := os.Mkdir(utils.Ncsr_folder, 0700); err != nil {
 			fmt.Printf("Couldn't create /ncsr directory")
 			os.Exit(4)
 		}
@@ -182,12 +201,12 @@ func main() {
 		os.Exit(3)
 	}
 
-	if _, err := os.Stat(utils.TLS_folder + "nest_key.pem"); err != nil {
+	if _, err := os.Stat(utils.TLS_folder + "nest_service-key.pem"); err != nil {
 		fmt.Printf("Cannot find NEST service TLS key\n")
 		os.Exit(10)
 	}
 
-	if _, err := os.Stat(utils.Nebula_folder + "nest_crt.pem"); err != nil {
+	if _, err := os.Stat(utils.TLS_folder + "nest_service-crt.pem"); err != nil {
 		fmt.Printf("Cannot find NEST TLS crt\n")
 		os.Exit(11)
 	}
@@ -222,5 +241,6 @@ func main() {
 		TLSConfig: tls_config,
 	}
 
-	srv.ListenAndServeTLS(utils.TLS_folder+"nest_service-crt.pem", utils.TLS_folder+"nest_service-key.pem")
+	err = srv.ListenAndServeTLS(utils.TLS_folder+"nest_service-crt.pem", utils.TLS_folder+"nest_service-key.pem")
+	fmt.Println("Error in Setting up TLS server: " + err.Error())
 }

@@ -13,6 +13,9 @@ firewall:
   - host: nest_ca
     port: 53535
     proto: tcp
+  - host: nest_config
+    port: 61616
+    proto: tcp
 lighthouse:
   am_lighthouse: false
   hosts:

@@ -3,6 +3,7 @@ package nest_config
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -66,7 +67,7 @@ func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error
 
 	ip = strings.ReplaceAll(string(b[low+len(start):high]), " ", ".")
 
-	file, _ := os.Open(utils.Dhall_configuration)
+	file, _ := os.Open(utils.Dhall_dir + utils.Dhall_configuration)
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
@@ -85,7 +86,8 @@ func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error
 				}
 				ip_mask = append(ip_mask, v)
 			}
-			if len(group) != 0 {
+			if len(ip_mask) != 0 {
+				fmt.Println("Ip: " + ip + " Ip mask:" + string(ip_mask))
 				ip += "/" + string(ip_mask)
 			}
 		}
@@ -105,6 +107,7 @@ func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error
 				}
 				if len(group) != 0 {
 					groups = append(groups, string(group))
+					group = []rune{}
 				}
 			}
 		}
@@ -128,6 +131,7 @@ func GetConfig(c *gin.Context) {
 	//Read the whole generated yaml file and return it in conf_resp
 	b, err := os.ReadFile(utils.Dhall_dir + "nebula/generated/" + hostname + ".yaml")
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}

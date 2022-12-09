@@ -342,14 +342,14 @@ First of all, we have to create the tls key pairs for the nest_service. Create a
 If you want a self signed certificate:
 
 ```bash
-openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+openssl ecparam -name prime256v1 -genkey -noout -out nest_service-key.pem
 openssl req -new -x509 -key nest_service-key.pem -out nest_service-crt.pem -days 365
 ```
 
 If you already have an internal Certificate Authority, you need to create the key pair and a Certificate Signing Request to be signed by the CA:
 
 ```bash
-openssl ecparam -name secp256k1 -genkey -noout -out nest_service-key.pem
+openssl ecparam -name prime256v1 -genkey -noout -out nest_service-key.pem
 openssl req -new -sha256 -key nest_service-key.pem -out nest_service.csr
 openssl x509 -signkey <path-to-the-ca-key> -in nest_service.csr -req -days 365 -out nest_service-crt.pem
 ```

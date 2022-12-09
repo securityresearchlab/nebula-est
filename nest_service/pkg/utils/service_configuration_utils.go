@@ -103,7 +103,6 @@ func SetupNebula(nebula_folder string) error {
 
 	time.Sleep(2 * time.Second)
 	interfaces, err := net.Interfaces()
-	fmt.Println(interfaces)
 
 	if err != nil {
 		fmt.Printf("Could'nt check information about host interfaces\n")

@@ -19,11 +19,15 @@ import (
 
 // generateAllNebulaConfigs generates Nebula configuration files for every client using the dhall-nebula tool
 func generateAllNebulaConfigs() error {
-	out, err := exec.Command(utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir", utils.Dhall_dir, "--configFileName", utils.Dhall_configuration, "config", "--configsPath", utils.Conf_gen_dir).CombinedOutput()
+	pwd, _ := os.Getwd()
+	os.Chdir(utils.Dhall_dir + "bin/")
+	fmt.Println("Generating nebula configuration files...")
+	out, err := exec.Command("./dhall-nebula", "--dhallDir", "../", "--configFileName", utils.Dhall_configuration, "config", "--configsPath", "../"+utils.Conf_gen_dir).CombinedOutput()
 	if err != nil {
 		fmt.Println("Error in dhall-nebula: " + string(out))
 		return err
 	}
+	os.Chdir(pwd)
 
 	return nil
 }
@@ -71,7 +75,7 @@ func main() {
 	}
 	info, err = os.Stat(utils.Dhall_dir + utils.Dhall_configuration)
 	if err != nil {
-		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the dhall-nebula bin to the service before starting it\nExiting...", utils.Dhall_configuration)
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the dhall-nebula network configuration to the service before starting it\nExiting...", utils.Dhall_dir+utils.Dhall_configuration)
 		os.Exit(2)
 	}
 	if !utils.IsRWOwner(info.Mode()) {
@@ -100,9 +104,11 @@ func main() {
 		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
 		os.Exit(9)
 	}
-	if err = generateAllNebulaConfigs(); err != nil {
-		fmt.Println("Could not generate Nebula configuration files: " + err.Error())
-		os.Exit(3)
+	if dir, _ := os.ReadDir(utils.Dhall_dir + utils.Conf_gen_dir); len(dir) == 0 {
+		if err = generateAllNebulaConfigs(); err != nil {
+			fmt.Println("Could not generate Nebula configuration files: " + err.Error())
+			os.Exit(3)
+		}
 	}
 
 	fmt.Println("NEST config service: setup finished")

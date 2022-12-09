@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
@@ -40,6 +41,19 @@ var Ca_routes = [3]models.Route{
 	},
 }
 
+func checkPublicKey(publicKey []byte) bool {
+	certificates, _ := os.ReadDir(utils.Certificates_path)
+	for _, f := range certificates {
+		b, _ := os.ReadFile(utils.Certificates_path + f.Name())
+		nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
+		if reflect.DeepEqual(nc.Details.PublicKey, publicKey) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // the readExistingCert function verifies if the given hostname has already an issued certificate. If so, fills the empty fields of its Nebula CSR.
 func readExistingCert(csr *models.NebulaCsr) error {
 	b, err := os.ReadFile(utils.Certificates_path + csr.Hostname + ".crt")
@@ -59,7 +73,6 @@ func readExistingCert(csr *models.NebulaCsr) error {
 
 	csr.Groups = nc.Details.Groups
 	csr.Ip = nc.Details.Ips[0].String()
-	fmt.Println("IP: " + csr.Ip)
 	csr.PublicKey = nc.Details.PublicKey
 
 	return nil
@@ -82,7 +95,7 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 
 	ip = csr.Ip
 	if option == models.SERVERKEYGEN {
-		out, err := exec.Command(utils.Ca_bin+"nebula-cert", "keygen", "-out-pub", utils.Certificates_path+csr.Hostname+".pub", "-out-key", utils.Certificates_path+csr.Hostname+".key").CombinedOutput()
+		out, err := exec.Command(utils.Ca_bin, "keygen", "-out-pub", utils.Certificates_path+csr.Hostname+".pub", "-out-key", utils.Certificates_path+csr.Hostname+".key").CombinedOutput()
 		if err != nil {
 			return nil, &models.ApiError{Code: 500, Message: "Internal server error: " + err.Error() + string(out)}
 		}
@@ -102,7 +115,12 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 		ca_response.NebulaPrivateKey = key
 	}
 
-	out, err := exec.Command(utils.Ca_bin+"nebula-cert", "sign", "-ca-crt", utils.Ca_keys_path+"ca.crt", "-ca-key", utils.Ca_keys_path+"ca.key", "-in-pub", utils.Certificates_path+csr.Hostname+".pub", "-groups", groups[:len(groups)-1], "-name", csr.Hostname, "-out-crt", utils.Certificates_path+csr.Hostname+".crt", "-ip", ip).CombinedOutput()
+	var out []byte
+	if len(groups) == 0 {
+		out, err = exec.Command(utils.Ca_bin, "sign", "-ca-crt", utils.Ca_keys_path+"ca.crt", "-ca-key", utils.Ca_keys_path+"ca.key", "-in-pub", utils.Certificates_path+csr.Hostname+".pub", "-name", csr.Hostname, "-out-crt", utils.Certificates_path+csr.Hostname+".crt", "-ip", ip).CombinedOutput()
+	} else {
+		out, err = exec.Command(utils.Ca_bin, "sign", "-ca-crt", utils.Ca_keys_path+"ca.crt", "-ca-key", utils.Ca_keys_path+"ca.key", "-in-pub", utils.Certificates_path+csr.Hostname+".pub", "-groups", groups[:len(groups)-1], "-name", csr.Hostname, "-out-crt", utils.Certificates_path+csr.Hostname+".crt", "-ip", ip).CombinedOutput()
+	}
 	if err != nil {
 		return nil, &models.ApiError{Code: 500, Message: "Internal server error: " + err.Error() + string(out)}
 	}
@@ -159,20 +177,27 @@ func CertificateSign(c *gin.Context) {
 		return
 	}
 	*/
-	if csr.Rekey {
+	if len(csr.Ip) == 0 {
 		if err := readExistingCert(&csr); err != nil {
+			fmt.Println("Internal server Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
 			return
 		}
 	}
 
+	if invalidPublickey := checkPublicKey(csr.PublicKey); invalidPublickey {
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 400, Message: "Bad request: the provided public key is already used by an already enrolled host"})
+		return
+	}
 	if err := os.WriteFile(utils.Certificates_path+csr.Hostname+".pub", cert.MarshalX25519PublicKey(csr.PublicKey), 0600); err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
 		return
 	}
 
 	ca_response, err := generateCertificate(&csr, models.ENROLL)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -190,8 +215,9 @@ func GenerateKeys(c *gin.Context) {
 		return
 	}
 
-	if csr.Rekey {
+	if len(csr.Ip) == 0 {
 		if err := readExistingCert(&csr); err != nil {
+			fmt.Println("Internal server Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
 			return
 		}

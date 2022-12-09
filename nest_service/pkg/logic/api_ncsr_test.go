@@ -110,6 +110,7 @@ func TestNcsrApplication(t *testing.T) {
 
 	//Seventh test: success
 	auth.Secret = sign(auth.Hostname)
+	fmt.Println(auth.Secret)
 	resp = sendNcsrApplication(t, r, endpoint, auth)
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	assert.Equal(t, "http://"+utils.Service_ip+":"+utils.Service_port+"/ncsr/"+auth.Hostname, resp.Header().Get("Location"))
@@ -127,6 +128,7 @@ func TestEnroll(t *testing.T) {
 	)
 
 	r := nest_test.MockRouterForEndpoint(&endpoint)
+	utils.Ncsr_folder = "../../test/ncsr/"
 	applicationFile, _ := os.OpenFile(utils.Ncsr_folder+"lighthouse", os.O_CREATE|os.O_WRONLY, 0600)
 	applicationFile.WriteString(string(models.PENDING))
 	//First test: empty hostname
@@ -139,7 +141,6 @@ func TestEnroll(t *testing.T) {
 
 	//Second test: not authorized
 	hostname = "prova"
-	utils.Ncsr_folder = "../../test/ncsr/"
 	err = models.ApiError{Code: 401, Message: "Unhautorized: please authenticate yourself to https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr providing your hostname and secret, before accessing this endpoint"}
 	errBytes, _ = json.Marshal(err)
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
@@ -206,7 +207,7 @@ func TestEnroll(t *testing.T) {
 	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
 	utils.Ca_service_ip = "localhost"
-	utils.Ca_service_port = "8080"
+	utils.Ca_service_port = "8083"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	r3 := nest_test.MockRouterForEndpoint(&config_endpoint)
 	utils.Dhall_dir = "../../../nest_config/test/dhall/"
@@ -217,8 +218,8 @@ func TestEnroll(t *testing.T) {
 
 	b, _ := os.ReadFile("../../test/lighthouse.pub")
 	csr.PublicKey, _, _ = cert.UnmarshalX25519PublicKey(b)
+	fmt.Println(csr.PublicKey)
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
-	fmt.Println(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 }
@@ -408,7 +409,7 @@ func TestServerkeygen(t *testing.T) {
 	utils.Dhall_dir = "../../../nest_config/test/dhall/"
 	utils.Dhall_configuration = utils.Dhall_dir + "nebula/nebula_conf.dhall"
 	utils.Conf_service_ip = "localhost"
-	utils.Conf_service_port = "8083"
+	utils.Conf_service_port = "8087"
 	go r3.Run(utils.Conf_service_ip + ":" + utils.Conf_service_port)
 
 	csr.ServerKeygen = true

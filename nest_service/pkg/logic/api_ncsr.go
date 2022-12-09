@@ -123,7 +123,10 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, error) {
 		}
 		return 0, nil
 	case models.RENROLL:
-		if !csr.Rekey || csr.Rekey && csr.ServerKeygen {
+		if !csr.Rekey && csr.ServerKeygen {
+			return http.StatusBadRequest, &models.ApiError{Code: 400, Message: "Bad Request. Serverkeygen is true but rekeys is false"}
+		}
+		if csr.Rekey && csr.ServerKeygen || !csr.Rekey {
 			return 0, nil
 		}
 	}
@@ -288,6 +291,7 @@ func NcsrApplication(c *gin.Context) {
 
 	isValid, err := isValidHostname(auth.Hostname)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		return
 	}
@@ -298,6 +302,7 @@ func NcsrApplication(c *gin.Context) {
 
 	if ok, err := verify(auth.Hostname, auth.Secret); !ok {
 		if err != nil {
+			fmt.Println("Internal server Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
 			return
 		}
@@ -308,10 +313,12 @@ func NcsrApplication(c *gin.Context) {
 
 	applicationFile, err := os.OpenFile(utils.Ncsr_folder+auth.Hostname, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		return
 	}
 	if _, err = applicationFile.WriteString(string(models.PENDING)); err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 		return
 	}
@@ -328,14 +335,11 @@ func NcsrStatus(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Nebula CSR Status request received for hostname: " + hostname)
-
-	file, err := os.OpenFile(utils.Ncsr_folder+hostname, os.O_RDWR|os.O_TRUNC, 0600)
+	file, err := os.Open(utils.Ncsr_folder + hostname)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.ApiError{Code: 404, Message: "Not found. Could not find an open Nebula CSR application for the specified hostname. If you want to enroll, provide your hostname to http:" + utils.Service_ip + ":" + utils.Service_port + "/ncsr"})
 		return
 	}
-	defer file.Close()
 
 	fileScanner := bufio.NewScanner(file)
 
@@ -344,19 +348,30 @@ func NcsrStatus(c *gin.Context) {
 	for fileScanner.Scan() {
 		fileLines = append(fileLines, fileScanner.Text())
 	}
-
+	file.Close()
 	if len(fileLines) == 2 {
 		notAfter, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", fileLines[1])
 		if err != nil {
+			fmt.Println("Internal server Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
 			return
 		}
 		if time.Until(notAfter) < 0 {
 			fileLines[0] = string(models.EXPIRED)
+			file, err := os.OpenFile(utils.Ncsr_folder+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
+			if err != nil {
+				c.JSON(http.StatusNotFound, models.ApiError{Code: 404, Message: "Not found. Could not find an open Nebula CSR application for the specified hostname. If you want to enroll, provide your hostname to http:" + utils.Service_ip + ":" + utils.Service_port + "/ncsr"})
+				return
+			}
 			for _, s := range fileLines {
 				file.WriteString(s + "\n")
 			}
+			file.Close()
 		}
+	}
+	if len(fileLines) == 0 {
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: there was an error in reading this hostname's ncsr status"})
+		return
 	}
 	c.JSON(http.StatusOK, fileLines[0])
 }
@@ -397,6 +412,7 @@ func Enroll(c *gin.Context) {
 
 	csr_resp, err := getCSRResponse(hostname, &csr, models.ENROLL)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
@@ -443,6 +459,7 @@ func Reenroll(c *gin.Context) {
 
 	csr_resp, err := getCSRResponse(hostname, &csr, models.RENROLL)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
@@ -485,6 +502,7 @@ func Serverkeygen(c *gin.Context) {
 
 	csr_resp, err := getCSRResponse(hostname, &csr, models.SERVERKEYGEN)
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}

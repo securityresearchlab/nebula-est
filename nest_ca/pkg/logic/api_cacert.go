@@ -8,6 +8,7 @@
 package nest_ca
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -47,6 +48,7 @@ func Cacerts(c *gin.Context) {
 	ca_certs, err := getCaCertFromFile()
 
 	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "could not find the Nebula CA certificates: " + err.Error()})
 		return
 	}
