@@ -79,17 +79,21 @@ func CheckCaCertFile() error {
 			return err
 		}
 
+		file, err := os.OpenFile(utils.Ca_cert_file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
 		for _, nc := range ca_certs {
 			b, err := nc.MarshalToPEM()
 			if err != nil {
 				return err
 			}
 
-			if err = os.WriteFile(utils.Ca_cert_file, b, 0600); err != nil {
-				return err
-			}
+			file.Write(b)
 		}
+		file.Close()
 	}
+
 	return nil
 }
 

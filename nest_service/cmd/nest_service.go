@@ -188,16 +188,16 @@ func main() {
 	}
 
 	if err := utils.SetupNebula(utils.Nebula_folder); err != nil {
-		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
+		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err)
 		os.Exit(9)
 	}
 
 	if err := nest_service.CheckCaCertFile(); err != nil {
-		fmt.Println("Could not contact the CA service: " + err.Error())
+		fmt.Printf("Could not contact the CA service: %v\n", err)
 		os.Exit(2)
 	}
 	if err := checkHostnamesFile(); err != nil {
-		fmt.Println("Could not contact the Conf service: " + err.Error())
+		fmt.Printf("Could not contact the Conf service: %v\n", err)
 		os.Exit(3)
 	}
 

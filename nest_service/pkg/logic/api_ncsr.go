@@ -412,7 +412,7 @@ func Enroll(c *gin.Context) {
 
 	csr_resp, err := getCSRResponse(hostname, &csr, models.ENROLL)
 	if err != nil {
-		fmt.Println("Internal server Error: " + err.Error())
+		fmt.Printf("Internal server Error%v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
