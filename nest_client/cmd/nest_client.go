@@ -18,9 +18,9 @@ func main() {
 
 		nest_client.Nest_service_port = val
 	}
-	if val, ok := os.LookupEnv("NEBULA_FOLDER"); ok {
+	if val, ok := os.LookupEnv("BIN_FOLDER"); ok {
 
-		nest_client.Nebula_folder = val
+		nest_client.Bin_folder = val
 	}
 	if val, ok := os.LookupEnv("NEBULA_AUTH"); ok {
 		nest_client.Nebula_auth = val
@@ -33,7 +33,7 @@ func main() {
 	}
 	fmt.Println("NEST client: starting setup")
 
-	if _, err := os.Stat(nest_client.Nebula_folder + "nebula"); err != nil {
+	if _, err := os.Stat(nest_client.Bin_folder + "nebula"); err != nil {
 		fmt.Printf("Cannot find nebula binary. Please provide the nebula binary before starting nest_client\n")
 		os.Exit(1)
 	}
@@ -66,7 +66,7 @@ func main() {
 		}
 	}
 
-	if _, err := os.Stat(nest_client.Nebula_folder + "nebula-cert"); err != nil {
+	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert"); err != nil {
 		if err := nest_client.ServerKeygen(); err != nil {
 			fmt.Printf("There was an error enrolling with serverkeygen : %v\n", err.Error())
 			os.Exit(6)
