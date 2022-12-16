@@ -42,18 +42,21 @@ func getHostnames() ([]string, error) {
 				time.Sleep(1 * time.Second)
 				continue
 			} else {
-				b, err := io.ReadAll(resp.Body)
-				if err != nil {
-					return nil, err
-				}
-				if json.Unmarshal(b, error_response) != nil {
-					if error_response != nil {
-						return nil, error_response
+				if resp != nil {
+					b, err := io.ReadAll(resp.Body)
+					if err != nil {
+						return nil, err
+					}
+					if json.Unmarshal(b, error_response) != nil {
+						if error_response != nil {
+							return nil, error_response
+						}
 					}
 				}
 			}
+		} else {
+			break
 		}
-		break
 	}
 
 	b, err := io.ReadAll(resp.Body)

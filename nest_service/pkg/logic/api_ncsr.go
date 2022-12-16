@@ -126,7 +126,7 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, error) {
 		if !csr.Rekey && csr.ServerKeygen {
 			return http.StatusBadRequest, &models.ApiError{Code: 400, Message: "Bad Request. Serverkeygen is true but rekeys is false"}
 		}
-		if csr.Rekey && csr.ServerKeygen || !csr.Rekey {
+		if !csr.Rekey || csr.Rekey && csr.ServerKeygen {
 			return 0, nil
 		}
 	}
