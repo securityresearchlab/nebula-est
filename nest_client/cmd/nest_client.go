@@ -18,6 +18,9 @@ func main() {
 
 		nest_client.Nest_service_port = val
 	}
+	if val, ok := os.LookupEnv("NEST_CERT"); ok {
+		nest_client.Nest_certificate = val
+	}
 	if val, ok := os.LookupEnv("BIN_FOLDER"); ok {
 
 		nest_client.Bin_folder = val
@@ -33,58 +36,58 @@ func main() {
 	}
 	fmt.Println("NEST client: starting setup")
 
+	if _, err := os.Stat(nest_client.Nest_certificate); err != nil {
+		fmt.Printf("Cannot find NEST service certificate. Please provide the NEST certificate or CA certificate before starting nest_client\n")
+		os.Exit(1)
+	}
 	if _, err := os.Stat(nest_client.Bin_folder + "nebula"); err != nil {
 		fmt.Printf("Cannot find nebula binary. Please provide the nebula binary before starting nest_client\n")
-		os.Exit(1)
+		os.Exit(2)
 	}
 
 	if _, err := os.Stat(nest_client.Nebula_auth); err != nil {
 		fmt.Printf("Cannot find nest_client authorization token. Please provide the authorization token before starting nest_client\n")
-		os.Exit(2)
+		os.Exit(3)
 	}
 
 	if len(nest_client.Hostname) == 0 {
 		hostname, err := os.Hostname()
 		if err != nil {
 			fmt.Printf("Cannot load client's hostname from environment. Please provide the hostname or set it in the os before starting nest_client\n")
-			os.Exit(3)
+			os.Exit(4)
 		}
 		nest_client.Hostname = hostname
 	}
 
 	if _, err := os.Stat("ca.crt"); err != nil {
-		if err := nest_client.Get_CA_certs(); err != nil {
+		if err := nest_client.GetCACerts(); err != nil {
 			fmt.Printf("There was an error getting the NEST client Nebula Network CAs: %v\n", err.Error())
-			os.Exit(4)
-		}
-	}
-
-	if _, err := os.Stat("ncsr_status"); err != nil {
-		if err := nest_client.Authorize_host(); err != nil {
-			fmt.Printf("There was an error authorizing the nest client: %v\n", err.Error())
 			os.Exit(5)
 		}
 	}
 
+	if _, err := os.Stat("ncsr_status"); err != nil {
+		if err := nest_client.AuthorizeHost(); err != nil {
+			fmt.Printf("There was an error authorizing the nest client: %v\n", err.Error())
+			os.Exit(6)
+		}
+	}
+
+	//todo add error channel
 	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert"); err != nil {
-		if err := nest_client.ServerKeygen(); err != nil {
-			fmt.Printf("There was an error enrolling with serverkeygen : %v\n", err.Error())
-			os.Exit(6)
-		}
+		go nest_client.ServerKeygen()
 	} else {
-		if err := nest_client.Enroll(); err != nil {
-			fmt.Printf("There was an error enrolling: %v\n", err.Error())
-			os.Exit(6)
-		}
+		go nest_client.Enroll()
 	}
 	for {
 		select {
 		case duration := <-nest_client.Enroll_chan:
 			if duration.Hours() < 0 {
-				fmt.Println("There was an error reenrolling")
+				fmt.Println("There was an error in the enrollment process")
 				os.Exit(9)
 			}
 			time.AfterFunc(duration, nest_client.Reenroll)
+
 		default:
 			continue
 		}

@@ -23,9 +23,9 @@ logging:
   format: text
   level: info
 pki:
-  ca: /etc/nebula/ca.crt
-  cert: /etc/nebula/lighthouse.crt
-  key: /etc/nebula/lighthouse.key
+  ca: /mnt/d/Uni/Tesi/Magistrale/nebula_est/nest_client/test/ca.crt
+  cert: /mnt/d/Uni/Tesi/Magistrale/nebula_est/nest_client/test/lighthouse.crt
+  key: /mnt/d/Uni/Tesi/Magistrale/nebula_est/nest_client/test/lighthouse.key
 punchy:
   punch: true
   respond: true
