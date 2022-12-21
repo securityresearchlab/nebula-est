@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // The Sign function returns an HMAC of the given hostname
@@ -40,7 +43,9 @@ func verify(hostname string, secret []byte) (bool, error) {
 	}
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(hostname))
-
+	fmt.Println(mac.Sum(nil))
+	fmt.Println(hex.EncodeToString(mac.Sum(nil)))
+	fmt.Println(secret)
 	return hmac.Equal(secret, mac.Sum(nil)), nil
 }
 
@@ -146,9 +151,9 @@ getCSRResponse contacts the nest_ca and nest_config services to get the client's
 It calls sendCSR and requestConf to do so.
 It returns the Nebula CSR Response if both requests are successful, an error otherwise.
 */
-func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models.NebulaCsrResponse, error) {
+func getRawCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models.RawNebulaCsrResponse, error) {
 	var conf_resp *models.ConfResponse
-	var ca_response *models.CaResponse
+	var raw_ca_response *models.RawCaResponse
 	var err error
 	if option != models.RENROLL {
 		conf_resp, err = requestConf(hostname)
@@ -159,19 +164,19 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 		csr.Ip = conf_resp.Ip
 	}
 
-	ca_response, err = sendCSR(csr, option)
+	raw_ca_response, err = sendCSR(csr, option)
 	if err != nil {
 		return nil, err
 	}
 
-	var csr_resp models.NebulaCsrResponse
-	csr_resp.NebulaCert = ca_response.NebulaCert
-	if option == models.SERVERKEYGEN {
-		csr_resp.NebulaPrivateKey = ca_response.NebulaPrivateKey
+	var raw_csr_resp models.RawNebulaCsrResponse
+	raw_csr_resp.NebulaCert = raw_ca_response.NebulaCert
+	if csr.ServerKeygen {
+		raw_csr_resp.NebulaPrivateKey = raw_ca_response.NebulaPrivateKey
 	}
 	if option != models.RENROLL {
-		csr_resp.NebulaConf = conf_resp.NebulaConf
-		csr_resp.NebulaPath = conf_resp.NebulaPath
+		raw_csr_resp.NebulaConf = conf_resp.NebulaConf
+		raw_csr_resp.NebulaPath = &conf_resp.NebulaPath
 	}
 
 	file, err := os.OpenFile(utils.Ncsr_folder+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
@@ -182,15 +187,15 @@ func getCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*models
 	defer file.Close()
 
 	file.WriteString(string(models.COMPLETED) + "\n")
-	file.WriteString(ca_response.NebulaCert.Details.NotAfter.String())
-	return &csr_resp, nil
+	file.WriteString(strconv.FormatInt(raw_ca_response.NebulaCert.Details.NotAfter, 10))
+	return &raw_csr_resp, nil
 }
 
 /*
 sendCSR sends the client provide Nebula CSR to the nebula_ca service and returns the nebula_ca generated Nebula certificate to the client.
 The Nebula private key is also returned if the option field is SERVERKEYGEN
 */
-func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
+func sendCSR(csr *models.NebulaCsr, option int) (*models.RawCaResponse, error) {
 	var path string
 	switch option {
 	case models.ENROLL:
@@ -229,18 +234,25 @@ func sendCSR(csr *models.NebulaCsr, option int) (*models.CaResponse, error) {
 		return nil, err
 	}
 
-	var error_response models.ApiError
-	if json.Unmarshal(b, &error_response) != nil {
-		if error_response.Code == 0 {
-			return nil, &error_response
+	raw_ca_response := &models.RawCaResponse{}
+	var raw_ca_response_bytes []byte
+	switch {
+	case resp.StatusCode == 200:
+		if err = json.Unmarshal(b, &raw_ca_response_bytes); err != nil {
+			return nil, err
+		}
+		if err = proto.Unmarshal(raw_ca_response_bytes, raw_ca_response); err != nil {
+			return nil, err
+		}
+	case resp.StatusCode >= 400:
+		var error_response models.ApiError
+		if json.Unmarshal(b, &error_response) == nil {
+			if error_response.Code != 0 {
+				return nil, &error_response
+			}
 		}
 	}
-	var response models.CaResponse
-	if err = json.Unmarshal(b, &response); err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return raw_ca_response, nil
 }
 
 /*
@@ -410,13 +422,20 @@ func Enroll(c *gin.Context) {
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, models.ENROLL)
+	raw_csr_resp, err := getRawCSRResponse(hostname, &csr, models.ENROLL)
+	if err != nil {
+		fmt.Printf("Internal server Error: %v\n", err)
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		return
+	}
+
+	b, err = proto.Marshal(raw_csr_resp)
 	if err != nil {
 		fmt.Printf("Internal server Error%v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, csr_resp)
+	c.JSON(http.StatusOK, b)
 }
 
 /*
@@ -457,13 +476,20 @@ func Reenroll(c *gin.Context) {
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, models.RENROLL)
+	raw_csr_resp, err := getRawCSRResponse(hostname, &csr, models.RENROLL)
 	if err != nil {
-		fmt.Println("Internal server Error: " + err.Error())
+		fmt.Printf("Internal server Error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, csr_resp)
+
+	b, err = proto.Marshal(raw_csr_resp)
+	if err != nil {
+		fmt.Printf("Internal server Error%v\n", err)
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, b)
 }
 
 /*
@@ -500,11 +526,18 @@ func Serverkeygen(c *gin.Context) {
 		return
 	}
 
-	csr_resp, err := getCSRResponse(hostname, &csr, models.SERVERKEYGEN)
+	raw_csr_resp, err := getRawCSRResponse(hostname, &csr, models.SERVERKEYGEN)
 	if err != nil {
-		fmt.Println("Internal server Error: " + err.Error())
+		fmt.Printf("Internal server Error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, csr_resp)
+
+	b, err = proto.Marshal(raw_csr_resp)
+	if err != nil {
+		fmt.Printf("Internal server Error%v\n", err)
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, b)
 }

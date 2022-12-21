@@ -13,11 +13,13 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 	"github.com/slackhq/nebula/cert"
+	"google.golang.org/protobuf/proto"
 )
 
 var Ca_routes = [3]models.Route{
@@ -44,10 +46,12 @@ var Ca_routes = [3]models.Route{
 func checkPublicKey(publicKey []byte) bool {
 	certificates, _ := os.ReadDir(utils.Certificates_path)
 	for _, f := range certificates {
-		b, _ := os.ReadFile(utils.Certificates_path + f.Name())
-		nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
-		if reflect.DeepEqual(nc.Details.PublicKey, publicKey) {
-			return true
+		if strings.HasSuffix(f.Name(), ".crt") {
+			b, _ := os.ReadFile(utils.Certificates_path + f.Name())
+			nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
+			if reflect.DeepEqual(nc.Details.PublicKey, publicKey) {
+				return true
+			}
 		}
 	}
 
@@ -145,12 +149,33 @@ func generateCertificate(csr *models.NebulaCsr, option int) (*models.CaResponse,
 	return ca_response, nil
 }
 
+func getRawCaResponse(ca_response *models.CaResponse) ([]byte, error) {
+	raw_bytes, err := ca_response.NebulaCert.Marshal()
+	if err != nil {
+		fmt.Println("Error in marshalling ca_response.NebulaCert:" + err.Error())
+		return nil, &models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()}
+	}
+	raw_cert := &cert.RawNebulaCertificate{}
+	if proto.Unmarshal(raw_bytes, raw_cert) != nil {
+		fmt.Println("Error in unmarshalling RawNebulaCert:" + err.Error())
+		return nil, &models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()}
+	}
+	raw_ca_response := models.RawCaResponse{
+		NebulaCert: raw_cert,
+	}
+	b, err := proto.Marshal(&raw_ca_response)
+	if err != nil {
+		fmt.Println("Error in marshalling RawCaResponse:" + err.Error())
+		return nil, &models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()}
+	}
+	return b, nil
+}
+
 /*
  * The CertificateSign REST endpoint creates a new Nebula certificate by signing the client provided Nebula Public Key.
  * It verifies if the provided Proof of Possession is valid for the given Public key before returning the certificate back to the client.
  */
 func CertificateSign(c *gin.Context) {
-	fmt.Println("Certificate Signing Request arrived")
 	var csr models.NebulaCsr
 
 	if err := c.ShouldBindJSON(&csr); err != nil {
@@ -180,7 +205,7 @@ func CertificateSign(c *gin.Context) {
 	if len(csr.Ip) == 0 {
 		if err := readExistingCert(&csr); err != nil {
 			fmt.Println("Internal server Error: " + err.Error())
-			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
+			c.JSON(http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -198,10 +223,16 @@ func CertificateSign(c *gin.Context) {
 	ca_response, err := generateCertificate(&csr, models.ENROLL)
 	if err != nil {
 		fmt.Println("Internal server Error: " + err.Error())
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, *ca_response)
+
+	b, err := getRawCaResponse(ca_response)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, b)
 }
 
 // The GenerateKeys REST endpoint creates a new Nebula certificate by generating the Nebula private key and certificate for the given hostname.
@@ -228,5 +259,10 @@ func GenerateKeys(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, *ca_response)
+	b, err := getRawCaResponse(ca_response)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, b)
 }

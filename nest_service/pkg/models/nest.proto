@@ -1,0 +1,33 @@
+syntax = "proto3";
+package models;
+option go_package = "github.com/m4rkdc/nebula_est/pkg/models";
+import "third-party/cert.proto";
+
+message RawNebulaCsr {
+    optional bool ServerKeygen = 1;
+    optional bool Rekey = 2;
+    string Hostname = 3;
+    optional bytes PublicKey = 4;
+    repeated string Groups = 5;
+    optional string  Ip   = 6;
+    //optional bytes Pop = 7;
+}
+
+message RawCaResponse{
+    cert.RawNebulaCertificate NebulaCert = 1;
+    optional bytes NebulaPrivateKey = 2;
+}
+
+message RawConfResponse{
+    bytes NebulaConf = 1;
+    repeated string Groups = 2;
+    string Ip = 3;
+    string NebulaPath = 4;
+}
+
+message RawNebulaCsrResponse{
+    cert.RawNebulaCertificate NebulaCert = 1;
+    optional bytes NebulaPrivateKey = 2;
+    optional bytes NebulaConf = 3;
+    optional string NebulaPath = 4;
+}

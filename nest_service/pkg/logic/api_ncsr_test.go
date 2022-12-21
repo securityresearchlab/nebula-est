@@ -202,7 +202,7 @@ func TestEnroll(t *testing.T) {
 	//Ninth test: success
 
 	r2 := nest_test.MockRouterForEndpoint(&ca_endpoint)
-	utils.Certificates_path = "../../../nest_ca/testcertificates/"
+	utils.Certificates_path = "../../../nest_ca/test/certificates/"
 	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
 	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
@@ -221,11 +221,9 @@ func TestEnroll(t *testing.T) {
 	fmt.Println(csr.PublicKey)
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 }
 
 func TestNcsrStatus(t *testing.T) {
-
 }
 func TestReenroll(t *testing.T) {
 	var (
@@ -416,5 +414,4 @@ func TestServerkeygen(t *testing.T) {
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
 	fmt.Println(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 }

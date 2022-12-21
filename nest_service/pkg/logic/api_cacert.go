@@ -9,14 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
-	"github.com/slackhq/nebula/cert"
 )
 
 /*
 The GetCaCerts function sends a request to the Nebula CA service for the Nebula CA certificates.
 The function retries to send the request after waiting Retry-After seconds
 */
-func getCaCerts() ([]cert.NebulaCertificate, error) {
+func getCaCerts() ([]byte, error) {
 	//TODO: add retry
 	resp, err := http.Get("http://" + utils.Ca_service_ip + ":" + utils.Ca_service_port + "/cacerts")
 	if err != nil {
@@ -34,38 +33,43 @@ func getCaCerts() ([]cert.NebulaCertificate, error) {
 			return nil, error_response
 		}
 	}
-	var response []cert.NebulaCertificate
-	err = json.Unmarshal(b, &response)
+	var ca_certs []byte
+	err = json.Unmarshal(b, &ca_certs)
 	if err != nil {
 		return nil, err
 	}
-
-	return response, nil
+	/*
+		var response []cert.NebulaCertificate
+		err = json.Unmarshal(b, &response)
+		if err != nil {
+			return nil, err
+		}*/
+	return ca_certs, nil
 }
 
 // This function gets the Nebula CA certs from the Ca_cert_file and returns them.
-func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
+func getCaCertFromFile() ([]byte, error) {
 	b, err := os.ReadFile(utils.Ca_cert_file)
 	if err != nil {
 		return nil, err
 	}
-
-	var ca_certs []cert.NebulaCertificate
-	for {
-		cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
-		if err != nil {
-			return nil, err
+	/*
+		var ca_certs []cert.NebulaCertificate
+		for {
+			cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
+			if err != nil {
+				return nil, err
+			}
+			if cert == nil {
+				break
+			}
+			ca_certs = append(ca_certs, *cert)
+			if len(b) == 0 {
+				break
+			}
 		}
-		if cert == nil {
-			break
-		}
-		ca_certs = append(ca_certs, *cert)
-		if len(b) == 0 {
-			break
-		}
-	}
-
-	return ca_certs, nil
+	*/
+	return b, nil
 }
 
 /*
@@ -78,20 +82,22 @@ func CheckCaCertFile() error {
 		if err != nil {
 			return err
 		}
-
-		file, err := os.OpenFile(utils.Ca_cert_file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			return err
-		}
-		for _, nc := range ca_certs {
-			b, err := nc.MarshalToPEM()
+		os.WriteFile(utils.Ca_cert_file, ca_certs, 0600)
+		/*
+			file, err := os.OpenFile(utils.Ca_cert_file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				return err
 			}
+			for _, nc := range ca_certs {
+				b, err := nc.MarshalToPEM()
+				if err != nil {
+					return err
+				}
 
-			file.Write(b)
-		}
-		file.Close()
+				file.Write(b)
+			}
+			file.Close()
+		*/
 	}
 
 	return nil

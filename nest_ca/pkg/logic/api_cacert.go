@@ -8,50 +8,47 @@
 package nest_ca
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
-	"github.com/slackhq/nebula/cert"
 )
 
 // The getCaCertFomFile function gets the Nebula CA certs from the Ca_cert_file and returns them.
-func getCaCertFromFile() ([]cert.NebulaCertificate, error) {
+func getCaCertFromFile() ([]byte, error) {
 	b, err := os.ReadFile(utils.Ca_keys_path + "ca.crt")
 	if err != nil {
 		return nil, err
 	}
+	/*
+		var ca_certs []cert.NebulaCertificate
+		for {
+			cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
+			if err != nil {
+				return nil, err
+			}
+			if cert == nil {
+				break
+			}
+			ca_certs = append(ca_certs, *cert)
+			if len(b) == 0 {
+				break
+			}
+		}*/
 
-	var ca_certs []cert.NebulaCertificate
-	for {
-		cert, b, err := cert.UnmarshalNebulaCertificateFromPEM(b)
-		if err != nil {
-			return nil, err
-		}
-		if cert == nil {
-			break
-		}
-		ca_certs = append(ca_certs, *cert)
-		if len(b) == 0 {
-			break
-		}
-	}
-
-	return ca_certs, nil
+	return b, nil
 }
 
 // The Cacerts REST endpoint returns the Nebula CA(s) certificates to the nest_service
 func Cacerts(c *gin.Context) {
 	ca_certs, err := getCaCertFromFile()
+	//b, err := os.ReadFile(utils.Ca_keys_path + "ca.crt")
 
 	if err != nil {
-		fmt.Println("Internal server Error: " + err.Error())
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "could not find the Nebula CA certificates: " + err.Error()})
-		return
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 	}
-
 	c.JSON(http.StatusOK, ca_certs)
+
 }

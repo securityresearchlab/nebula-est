@@ -11,11 +11,11 @@ package models
 // Response returned by the Nebula config service to the NEST servicetype ConfResponse struct
 type ConfResponse struct {
 	//The newly generated Nebula configuration file.
-	NebulaConf []byte `json:"nebulaConf,omitempty"`
+	NebulaConf []byte `json:"nebulaConf"`
 	//Nebula security groups the client will be part of.
 	Groups []string `json:"groups,omitempty"`
 	//Nebula Ip of the client.
-	Ip string `json:"ip,omitempty"`
+	Ip string `json:"ip"`
 	//The client-local path in which the configuration file and nebula certificate has to be installed
 	NebulaPath string `json:"NebulaPath"`
 }
