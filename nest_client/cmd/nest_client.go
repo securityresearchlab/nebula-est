@@ -1,13 +1,49 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	nest_client "github.com/m4rkdc/nebula_est/nest_client/pkg/logic"
 )
+
+func setupNebula() error {
+	_, err := os.Stat(nest_client.Bin_folder + "nebula")
+	if err != nil {
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nest_client.Bin_folder+"nebula")
+		return err
+	}
+	os.Chmod(nest_client.Bin_folder+"nebula", 0700)
+
+	exec.Command(nest_client.Bin_folder+"nebula", "-config", nest_client.Nebula_conf_folder+"config.yml").Start()
+
+	time.Sleep(2 * time.Second)
+	interfaces, err := net.Interfaces()
+
+	if err != nil {
+		fmt.Printf("Could'nt check information about host interfaces\n")
+		return err
+	}
+
+	var found bool = false
+	for _, i := range interfaces {
+		if strings.Contains(strings.ToLower(i.Name), "nebula") {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return nil
+	}
+	return errors.New("could not setup a nebula tunnel")
+}
 
 func main() {
 
@@ -78,6 +114,10 @@ func main() {
 		go nest_client.ServerKeygen()
 	} else {
 		go nest_client.Enroll()
+	}
+	if err := setupNebula(); err != nil {
+		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err)
+		os.Exit(7)
 	}
 	for {
 		select {

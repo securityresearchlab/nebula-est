@@ -43,6 +43,8 @@ var (
 	Conf_service_port string = "61616"
 	//Folder containing this service's NEST system Nebula network keys and configurations
 	Nebula_folder string = "config/nebula/"
+	//Generated certs validity. Valid time units are seconds: "s", minutes: "m", hours: "h"
+	Certs_validity string = ""
 	//Folder containing this service's TLS certificates and keys
 	TLS_folder string = "config/tls/"
 	//File containing the key used to sign HMACs

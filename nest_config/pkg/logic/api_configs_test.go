@@ -55,7 +55,7 @@ func TestGetConfig(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 	conf_resp.Ip = "192.168.100.1/24"
-	conf_resp.NebulaPath = "/etc/nebula/"
+	conf_resp.NebulaPath = "/mnt/d/Uni/Tesi/Magistrale/nebula_est/nest_client/test/"
 	conf_resp.Groups = append(conf_resp.Groups, "all")
 	b, _ := os.ReadFile(utils.Dhall_dir + "nebula/generated/" + hostname + ".yaml")
 	conf_resp.NebulaConf = b

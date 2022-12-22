@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"testing"
@@ -63,9 +64,11 @@ func TestAutorizeHost(t *testing.T) {
 	Nest_certificate = "../../../nest_service/test/config/tls/nest_service-crt.pem"
 	utils.HMAC_key = "../../../nest_service/test/config/hmac.key"
 	utils.Ncsr_folder = "../../../nest_service/test/ncsr/"
-	go r.RunTLS(utils.Service_ip+":"+utils.Service_port, "../../../nest_service/test/config/tls/nest_service-crt.pem", "../../../nest_service/test/config/tls/nest_service-key.pem")
 	Nebula_auth = "../../test/secret.hmac"
 	Hostname = "lighthouse"
+	os.Remove(utils.Ncsr_folder + Hostname)
+	go r.RunTLS(utils.Service_ip+":"+utils.Service_port, "../../../nest_service/test/config/tls/nest_service-crt.pem", "../../../nest_service/test/config/tls/nest_service-key.pem")
+
 	err := AuthorizeHost()
 	assert.Equal(t, err, nil)
 }
@@ -160,7 +163,6 @@ func TestServerKeygen(t *testing.T) {
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	utils.Dhall_dir = "../../../nest_config/test/dhall/"
 	utils.Dhall_configuration = utils.Dhall_dir + "nebula/nebula_conf.dhall"
-
 	go r3.Run(utils.Conf_service_ip + ":" + utils.Conf_service_port)
 	go ServerKeygen()
 	var br bool
@@ -271,7 +273,29 @@ func TestReenroll(t *testing.T) {
 	utils.Ca_service_port = "8097"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	Nebula_conf_folder = "../../test/"
+	utils.Certs_validity = "3s"
 	go Reenroll()
+	br = false
+	for !br {
+		select {
+		case duration := <-Enroll_chan:
+			fmt.Println("waiting for" + string(rune(duration)) + "seconds")
+			Rekey = false
+			utils.Certs_validity = ""
+			utils.Ca_service_port = "8096"
+			info, _ = os.Stat(Nebula_conf_folder + Hostname + ".crt")
+			assert.NotEqual(t, info.ModTime(), last_time)
+			last_time = info.ModTime()
+			info, _ = os.Stat(Nebula_conf_folder + Hostname + ".key")
+			assert.NotEqual(t, info.ModTime(), last_time_key)
+			last_time_key = info.ModTime()
+			time.AfterFunc(duration, Reenroll)
+			br = true
+		default:
+			continue
+		}
+	}
+	time.Sleep(3 * time.Second)
 	br = false
 	for !br {
 		select {
@@ -282,33 +306,6 @@ func TestReenroll(t *testing.T) {
 			continue
 		}
 	}
-	b, err = os.ReadFile("ncsr_status")
-	assert.Equal(t, err, nil)
-	ok, err = regexp.Match("Completed", b)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, ok, true)
-	Nebula_conf_folder = "../../test/"
-	info, _ = os.Stat(Nebula_conf_folder + Hostname + ".crt")
-	assert.NotEqual(t, info.ModTime(), last_time)
-	last_time = info.ModTime()
-	info, _ = os.Stat(Nebula_conf_folder + Hostname + ".key")
-	assert.NotEqual(t, info.ModTime(), last_time_key)
-	last_time_key = info.ModTime()
-	go sendDuration()
-	Nebula_conf_folder = "../../test/"
-	Rekey = false
-	utils.Ca_service_port = "8096"
-	br = false
-	for !br {
-		select {
-		case duration := <-Enroll_chan:
-			time.AfterFunc(duration, Reenroll)
-			br = true
-		default:
-			continue
-		}
-	}
-	time.Sleep(1 * time.Second)
 	info, _ = os.Stat(Nebula_conf_folder + Hostname + ".crt")
 	assert.NotEqual(t, info.ModTime(), last_time)
 	info, _ = os.Stat(Nebula_conf_folder + Hostname + ".key")
@@ -323,6 +320,8 @@ func TestReenroll(t *testing.T) {
 	os.Remove("ncsr_status")
 }
 
+/*
 func sendDuration() {
 	Enroll_chan <- 2 * time.Millisecond
 }
+*/

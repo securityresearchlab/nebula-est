@@ -12,13 +12,13 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
+	"github.com/slackhq/nebula/cert"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -146,6 +146,31 @@ func verifyCsr(csr models.NebulaCsr, hostname string, option int) (int, error) {
 	return 0, nil
 }
 
+func updateStatus(raw_ca_response *models.RawCaResponse, hostname string) error {
+	raw_cert_bytes, err := proto.Marshal(raw_ca_response.NebulaCert)
+	if err != nil {
+		fmt.Println("There was an error marshalling raw_csr_response.NebulaCert" + err.Error())
+		return &models.ApiError{Code: 500, Message: "There was an error unmarshalling json response"}
+	}
+
+	crt, err := cert.UnmarshalNebulaCertificate(raw_cert_bytes)
+	if err != nil {
+		fmt.Println("There was an error unmarshalling raw_cert_bytes" + err.Error())
+		return &models.ApiError{Code: 500, Message: "There was an error unmarshalling raw_cert_bytes"}
+	}
+
+	file, err := os.OpenFile(utils.Ncsr_folder+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		fmt.Printf("Could not write to file: %v\n", err)
+		return &models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()}
+	}
+	defer file.Close()
+
+	file.WriteString(string(models.COMPLETED) + "\n")
+	file.WriteString(crt.Details.NotAfter.String())
+	return nil
+}
+
 /*
 getCSRResponse contacts the nest_ca and nest_config services to get the client's Nebula certs and keys, as well as configuration files.
 It calls sendCSR and requestConf to do so.
@@ -179,15 +204,9 @@ func getRawCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*mod
 		raw_csr_resp.NebulaPath = &conf_resp.NebulaPath
 	}
 
-	file, err := os.OpenFile(utils.Ncsr_folder+hostname, os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		fmt.Printf("Could not write to file: %v\n", err)
+	if err = updateStatus(raw_ca_response, hostname); err != nil {
 		return nil, err
 	}
-	defer file.Close()
-
-	file.WriteString(string(models.COMPLETED) + "\n")
-	file.WriteString(strconv.FormatInt(raw_ca_response.NebulaCert.Details.NotAfter, 10))
 	return &raw_csr_resp, nil
 }
 
@@ -478,7 +497,9 @@ func Reenroll(c *gin.Context) {
 
 	raw_csr_resp, err := getRawCSRResponse(hostname, &csr, models.RENROLL)
 	if err != nil {
-		fmt.Printf("Internal server Error: %v\n", err)
+		if api_error, ok := err.(*models.ApiError); ok {
+			c.JSON(api_error.Code, api_error)
+		}
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}

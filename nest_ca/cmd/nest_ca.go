@@ -47,6 +47,9 @@ func main() {
 	if val, ok := os.LookupEnv("NEBULA_FOLDER"); ok {
 		utils.Nebula_folder = val
 	}
+	if val, ok := os.LookupEnv("CERTS_VALIDITY"); ok {
+		utils.Nebula_folder = val
+	}
 
 	fmt.Println("NEST CA service: starting setup")
 

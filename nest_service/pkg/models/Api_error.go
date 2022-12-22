@@ -8,13 +8,15 @@
  */
 package models
 
+import "strconv"
+
 type ApiError struct {
 	//HTTP status code
-	Code int32 `json:"code"`
+	Code int `json:"code"`
 	//Error message
 	Message string `json:"message"`
 }
 
 func (m *ApiError) Error() string {
-	return "[Code: " + string(m.Code) + "] " + m.Message
+	return "[Code: " + strconv.Itoa(m.Code) + "] " + m.Message
 }

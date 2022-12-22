@@ -18,6 +18,7 @@ import (
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 	nest_test "github.com/m4rkdc/nebula_est/nest_service/test"
 	"github.com/slackhq/nebula/cert"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func sendNcsrApplication(t *testing.T, r *gin.Engine, endpoint models.Route, auth models.NestAuth) *httptest.ResponseRecorder {
@@ -34,7 +35,15 @@ func sendEnroll(t *testing.T, r *gin.Engine, endpoint models.Route, hostname str
 	if csr == nil {
 		req, _ = http.NewRequest(endpoint.Method, url, http.NoBody)
 	} else {
-		csr_bytes, _ := json.Marshal(csr)
+		raw_csr := models.RawNebulaCsr{
+			ServerKeygen: &csr.ServerKeygen,
+			Rekey:        &csr.Rekey,
+			Hostname:     csr.Hostname,
+			PublicKey:    csr.PublicKey,
+			Groups:       csr.Groups,
+			Ip:           &csr.Ip,
+		}
+		csr_bytes, _ := protojson.Marshal(&raw_csr)
 		req, _ = http.NewRequest(endpoint.Method, url, bytes.NewReader(csr_bytes))
 	}
 	resp := httptest.NewRecorder()
@@ -204,21 +213,20 @@ func TestEnroll(t *testing.T) {
 	r2 := nest_test.MockRouterForEndpoint(&ca_endpoint)
 	utils.Certificates_path = "../../../nest_ca/test/certificates/"
 	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
-	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
+	utils.Ca_bin = "../../../nest_ca/test/config/bin/nebula-cert"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
 	utils.Ca_service_ip = "localhost"
-	utils.Ca_service_port = "8083"
+	utils.Ca_service_port = "9000"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	r3 := nest_test.MockRouterForEndpoint(&config_endpoint)
 	utils.Dhall_dir = "../../../nest_config/test/dhall/"
 	utils.Dhall_configuration = utils.Dhall_dir + "nebula/nebula_conf.dhall"
 	utils.Conf_service_ip = "localhost"
-	utils.Conf_service_port = "8081"
+	utils.Conf_service_port = "9001"
 	go r3.Run(utils.Conf_service_ip + ":" + utils.Conf_service_port)
 
 	b, _ := os.ReadFile("../../test/lighthouse.pub")
 	csr.PublicKey, _, _ = cert.UnmarshalX25519PublicKey(b)
-	fmt.Println(csr.PublicKey)
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
@@ -292,31 +300,33 @@ func TestReenroll(t *testing.T) {
 	//Eigth test: success with serverkeygen
 	r2 := nest_test.MockRouterForEndpoint(&ca_endpoint)
 	utils.Certificates_path = "../../../nest_ca/test/certificates/"
-	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
-	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
+	utils.Ca_bin = "../../../nest_ca/test/config/bin/nebula-cert"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
 	utils.Ca_service_ip = "localhost"
-	utils.Ca_service_port = "8085"
+	utils.Ca_service_port = "9002"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	csr.ServerKeygen = true
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
-	fmt.Println(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 	//Eigth test: success with simple reenroll
 	ca_endpoint = nest_ca.Ca_routes[1]
+	utils.Ca_service_port = "9003"
 	r2 = nest_test.MockRouterForEndpoint(&ca_endpoint)
 	utils.Certificates_path = "../../../nest_ca/test/certificates/"
-	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
-	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
+	utils.Ca_bin = "../../../nest_ca/test/config/bin/nebula-cert"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 
+	csr.Rekey = true
+	csr.ServerKeygen = false
 	b, _ := os.ReadFile("../../test/lighthouse.pub")
 	csr.PublicKey, _, _ = cert.UnmarshalX25519PublicKey(b)
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
-	fmt.Println(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.Code)
+	//Ninth test: simple reenroll with rekeying but same public key
+	resp = sendEnroll(t, r, endpoint, hostname, csr)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 
 }
 func TestServerkeygen(t *testing.T) {
@@ -329,10 +339,9 @@ func TestServerkeygen(t *testing.T) {
 		hostname        string
 		errTest         models.ApiError
 	)
-
+	utils.Ncsr_folder = "../../test/ncsr/"
 	r := nest_test.MockRouterForEndpoint(&endpoint)
-	applicationFile, _ := os.OpenFile(utils.Ncsr_folder+"lighthouse", os.O_CREATE|os.O_WRONLY, 0600)
-	applicationFile.WriteString(string(models.PENDING))
+	os.WriteFile(utils.Ncsr_folder+"lighthouse", []byte("Pending"), 0600)
 
 	//First test: empty hostname
 	hostname = " "
@@ -398,16 +407,16 @@ func TestServerkeygen(t *testing.T) {
 	r2 := nest_test.MockRouterForEndpoint(&ca_endpoint)
 	utils.Certificates_path = "../../../nest_ca/test/certificates/"
 	os.Remove(utils.Certificates_path + csr.Hostname + ".crt")
-	utils.Ca_bin = "../../../nest_ca/test/config/bin/"
+	utils.Ca_bin = "../../../nest_ca/test/config/bin/nebula-cert"
 	utils.Ca_keys_path = "../../../nest_ca/test/config/keys/"
 	utils.Ca_service_ip = "localhost"
-	utils.Ca_service_port = "8082"
+	utils.Ca_service_port = "9005"
 	go r2.Run(utils.Ca_service_ip + ":" + utils.Ca_service_port)
 	r3 := nest_test.MockRouterForEndpoint(&config_endpoint)
 	utils.Dhall_dir = "../../../nest_config/test/dhall/"
 	utils.Dhall_configuration = utils.Dhall_dir + "nebula/nebula_conf.dhall"
 	utils.Conf_service_ip = "localhost"
-	utils.Conf_service_port = "8087"
+	utils.Conf_service_port = "9006"
 	go r3.Run(utils.Conf_service_ip + ":" + utils.Conf_service_port)
 
 	csr.ServerKeygen = true
