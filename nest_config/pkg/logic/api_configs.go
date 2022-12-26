@@ -135,7 +135,13 @@ func GetConfig(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
 		return
 	}
-	conf_resp.NebulaConf = b
+	if bytes.Contains(b, []byte("\\")) {
+		b = bytes.ReplaceAll(b, []byte("/"), []byte("\\\\"))
+		conf_resp.NebulaConf = b
+	}
+	if len(conf_resp.NebulaConf) == 0 {
+		conf_resp.NebulaConf = b
+	}
 
 	if conf_resp.Groups, conf_resp.Ip, conf_resp.NebulaPath, err = parseDhallFiles(b, hostname); err != nil {
 		c.JSON(http.StatusInternalServerError, err)

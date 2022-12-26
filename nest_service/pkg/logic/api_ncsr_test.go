@@ -3,7 +3,6 @@ package nest_service
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -119,7 +118,6 @@ func TestNcsrApplication(t *testing.T) {
 
 	//Seventh test: success
 	auth.Secret = sign(auth.Hostname)
-	fmt.Println(auth.Secret)
 	resp = sendNcsrApplication(t, r, endpoint, auth)
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	assert.Equal(t, "http://"+utils.Service_ip+":"+utils.Service_port+"/ncsr/"+auth.Hostname, resp.Header().Get("Location"))
@@ -421,6 +419,5 @@ func TestServerkeygen(t *testing.T) {
 
 	csr.ServerKeygen = true
 	resp = sendEnroll(t, r, endpoint, hostname, csr)
-	fmt.Println(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.Code)
 }

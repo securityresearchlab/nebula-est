@@ -48,10 +48,8 @@ func checkPublicKey(publicKey []byte) bool {
 	for _, f := range certificates {
 		if strings.HasSuffix(f.Name(), ".crt") {
 			b, _ := os.ReadFile(utils.Certificates_path + f.Name())
-			fmt.Println(publicKey)
 
 			nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
-			fmt.Println(nc.Details.PublicKey)
 			if reflect.DeepEqual(nc.Details.PublicKey, publicKey) {
 				return true
 			}
@@ -250,8 +248,6 @@ func CertificateSign(c *gin.Context) {
 
 // The GenerateKeys REST endpoint creates a new Nebula certificate by generating the Nebula private key and certificate for the given hostname.
 func GenerateKeys(c *gin.Context) {
-	fmt.Println("Certificate Signing Request arrived")
-
 	var raw_csr models.RawNebulaCsr
 
 	if err := c.ShouldBindJSON(&raw_csr); err != nil {

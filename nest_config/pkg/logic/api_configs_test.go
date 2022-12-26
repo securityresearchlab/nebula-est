@@ -2,7 +2,6 @@ package nest_config
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -60,8 +59,6 @@ func TestGetConfig(t *testing.T) {
 	b, _ := os.ReadFile(utils.Dhall_dir + "nebula/generated/" + hostname + ".yaml")
 	conf_resp.NebulaConf = b
 	conf_resp_bytes, _ := json.Marshal(conf_resp)
-	fmt.Println(conf_resp)
-	fmt.Println(resp.Body)
 	assert.Equal(t, conf_resp_bytes, resp.Body.Bytes())
 }
 

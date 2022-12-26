@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -14,14 +15,14 @@ import (
 )
 
 func setupNebula() error {
-	_, err := os.Stat(nest_client.Bin_folder + "nebula")
+	_, err := os.Stat(nest_client.Bin_folder + "nebula" + nest_client.File_extension)
 	if err != nil {
-		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nest_client.Bin_folder+"nebula")
+		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nest_client.Bin_folder+"nebula"+nest_client.File_extension)
 		return err
 	}
-	os.Chmod(nest_client.Bin_folder+"nebula", 0700)
+	os.Chmod(nest_client.Bin_folder+"nebula"+nest_client.File_extension, 0700)
 
-	exec.Command(nest_client.Bin_folder+"nebula", "-config", nest_client.Nebula_conf_folder+"config.yml").Start()
+	exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-config", nest_client.Nebula_conf_folder+"config.yml").Start()
 
 	time.Sleep(2 * time.Second)
 	interfaces, err := net.Interfaces()
@@ -76,7 +77,10 @@ func main() {
 		fmt.Printf("Cannot find NEST service certificate. Please provide the NEST certificate or CA certificate before starting nest_client\n")
 		os.Exit(1)
 	}
-	if _, err := os.Stat(nest_client.Bin_folder + "nebula"); err != nil {
+	if runtime.GOOS == "windows" {
+		nest_client.File_extension = ".exe"
+	}
+	if _, err := os.Stat(nest_client.Bin_folder + "nebula" + nest_client.File_extension); err != nil {
 		fmt.Printf("Cannot find nebula binary. Please provide the nebula binary before starting nest_client\n")
 		os.Exit(2)
 	}
@@ -85,7 +89,6 @@ func main() {
 		fmt.Printf("Cannot find nest_client authorization token. Please provide the authorization token before starting nest_client\n")
 		os.Exit(3)
 	}
-
 	if len(nest_client.Hostname) == 0 {
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -108,13 +111,14 @@ func main() {
 			os.Exit(6)
 		}
 	}
-
+	fmt.Println("NEST client: setup finished")
 	//todo add error channel
-	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert"); err != nil {
-		go nest_client.ServerKeygen()
+	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert" + nest_client.File_extension); err != nil {
+		nest_client.ServerKeygen()
 	} else {
-		go nest_client.Enroll()
+		nest_client.Enroll()
 	}
+	fmt.Println("NEST client: enrollment successfull")
 	if err := setupNebula(); err != nil {
 		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err)
 		os.Exit(7)
@@ -126,6 +130,7 @@ func main() {
 				fmt.Println("There was an error in the enrollment process")
 				os.Exit(9)
 			}
+			fmt.Println("NEST client: Scheduling re-enrollment in: " + duration.String())
 			time.AfterFunc(duration, nest_client.Reenroll)
 
 		default:

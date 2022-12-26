@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,9 +42,6 @@ func verify(hostname string, secret []byte) (bool, error) {
 	}
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(hostname))
-	fmt.Println(mac.Sum(nil))
-	fmt.Println(hex.EncodeToString(mac.Sum(nil)))
-	fmt.Println(secret)
 	return hmac.Equal(secret, mac.Sum(nil)), nil
 }
 

@@ -27,9 +27,10 @@ var (
 	Nebula_auth        string
 	Hostname           string
 	Rekey              bool
-	Enroll_chan        = make(chan time.Duration)
+	Enroll_chan        = make(chan time.Duration, 2)
 	Nebula_conf_folder string
 	Nest_certificate   string
+	File_extension     string = ""
 )
 
 // todo: check nebula-cert generation times
@@ -158,8 +159,6 @@ func AuthorizeHost() error {
 	}
 
 	auth.Secret, err = hex.DecodeString(string(b))
-	fmt.Println(string(b))
-	fmt.Println(auth.Secret)
 	if err != nil {
 		return err
 	}
@@ -204,7 +203,7 @@ func Enroll() error {
 	var csr models.NebulaCsr
 
 	csr.Hostname = Hostname
-	out, err := exec.Command(Bin_folder+"nebula-cert", "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", csr.Hostname+".key").CombinedOutput()
+	out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", csr.Hostname+".key").CombinedOutput()
 	if err != nil {
 		fmt.Println("There was an error creating the Nebula key pair: " + string(out))
 		return err
@@ -349,7 +348,7 @@ func Reenroll() {
 			csr.ServerKeygen = true
 		} else {
 			os.Remove(Nebula_conf_folder + Hostname + ".key")
-			out, err := exec.Command(Bin_folder+"nebula-cert", "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", Nebula_conf_folder+Hostname+".key").CombinedOutput()
+			out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", Nebula_conf_folder+Hostname+".key").CombinedOutput()
 			if err != nil {
 				fmt.Println("There was an error creating the Nebula key pair: " + string(out))
 				Enroll_chan <- -1 * time.Second
