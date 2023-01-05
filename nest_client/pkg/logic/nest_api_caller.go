@@ -25,6 +25,7 @@ var (
 	Nest_service_port  string
 	Bin_folder         string
 	Nebula_auth        string
+	Conf_folder        string
 	Hostname           string
 	Rekey              bool
 	Enroll_chan        = make(chan time.Duration, 2)
@@ -35,7 +36,7 @@ var (
 
 // todo: check nebula-cert generation times
 func reenrollAfter(crt cert.NebulaCertificate) {
-	os.WriteFile("ncsr_status", []byte("Completed\n"+crt.Details.NotAfter.String()), 0600)
+	os.WriteFile(Conf_folder+"ncsr_status", []byte("Completed\n"+crt.Details.NotAfter.String()), 0600)
 	Enroll_chan <- time.Until(crt.Details.NotAfter)
 }
 
@@ -120,7 +121,7 @@ func GetCACerts() error {
 		if err != nil {
 			return err
 		}
-		os.WriteFile("ca.crt", response, 0600)
+		os.WriteFile(Conf_folder+"ca.crt", response, 0600)
 		/*
 			file, err := os.OpenFile("ca.crt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
@@ -181,7 +182,7 @@ func AuthorizeHost() error {
 
 	switch {
 	case resp.StatusCode == 201:
-		os.WriteFile("ncsr_status", []byte("Pending"), 0600)
+		os.WriteFile(Conf_folder+"ncsr_status", []byte("Pending"), 0600)
 	case resp.StatusCode >= 400:
 		if json.Unmarshal(b, &error_response) == nil {
 			if error_response.Code != 0 {
@@ -203,17 +204,17 @@ func Enroll() error {
 	var csr models.NebulaCsr
 
 	csr.Hostname = Hostname
-	out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", csr.Hostname+".key").CombinedOutput()
+	out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", Conf_folder+csr.Hostname+".pub", "-out-key", Conf_folder+csr.Hostname+".key").CombinedOutput()
 	if err != nil {
 		fmt.Println("There was an error creating the Nebula key pair: " + string(out))
 		return err
 	}
 
-	b, err := os.ReadFile(csr.Hostname + ".pub")
+	b, err := os.ReadFile(Conf_folder + csr.Hostname + ".pub")
 	if err != nil {
 		return err
 	}
-	os.Remove(csr.Hostname + ".pub")
+	os.Remove(Conf_folder + csr.Hostname + ".pub")
 	csr.PublicKey, _, err = cert.UnmarshalX25519PublicKey(b)
 	if err != nil {
 		return err
@@ -251,8 +252,12 @@ func Enroll() error {
 		}
 		Nebula_conf_folder = csr_response.NebulaPath
 		os.Mkdir(Nebula_conf_folder, 0700)
-		os.Rename(csr.Hostname+".key", Nebula_conf_folder+csr.Hostname+".key")
-		os.Rename("ca.crt", Nebula_conf_folder+"ca.crt")
+		if err := os.Rename(Conf_folder+csr.Hostname+".key", Nebula_conf_folder+csr.Hostname+".key"); err != nil {
+			return err
+		}
+		if err := os.Rename(Conf_folder+"ca.crt", Nebula_conf_folder+"ca.crt"); err != nil {
+			return err
+		}
 		os.WriteFile(Nebula_conf_folder+"config.yml", csr_response.NebulaConf, 0600)
 
 		b, err = csr_response.NebulaCert.MarshalToPEM()
@@ -316,9 +321,11 @@ func ServerKeygen() error {
 		Nebula_conf_folder = csr_response.NebulaPath
 		os.Mkdir(Nebula_conf_folder, 0700)
 		Nebula_conf_folder = csr_response.NebulaPath
-		key := cert.MarshalX25519PrivateKey(b)
+		key := cert.MarshalX25519PrivateKey(csr_response.NebulaPrivateKey)
 		os.WriteFile(Nebula_conf_folder+csr.Hostname+".key", key, 0600)
-		os.Rename("ca.crt", Nebula_conf_folder+"ca.crt")
+		if err := os.Rename(Conf_folder+"ca.crt", Nebula_conf_folder+"ca.crt"); err != nil {
+			return err
+		}
 		os.WriteFile(Nebula_conf_folder+"config.yml", csr_response.NebulaConf, 0600)
 		b, err = csr_response.NebulaCert.MarshalToPEM()
 		if err != nil {
@@ -341,26 +348,25 @@ func Reenroll() {
 	var csr models.NebulaCsr
 
 	csr.Hostname = Hostname
-
 	if Rekey {
 		csr.Rekey = Rekey
 		if _, err := os.Stat(Bin_folder + "nebula-cert"); err != nil {
 			csr.ServerKeygen = true
 		} else {
 			os.Remove(Nebula_conf_folder + Hostname + ".key")
-			out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", csr.Hostname+".pub", "-out-key", Nebula_conf_folder+Hostname+".key").CombinedOutput()
+			out, err := exec.Command(Bin_folder+"nebula-cert"+File_extension, "keygen", "-out-pub", Nebula_conf_folder+csr.Hostname+".pub", "-out-key", Nebula_conf_folder+Hostname+".key").CombinedOutput()
 			if err != nil {
 				fmt.Println("There was an error creating the Nebula key pair: " + string(out))
 				Enroll_chan <- -1 * time.Second
 				return
 			}
 
-			b, err := os.ReadFile(csr.Hostname + ".pub")
+			b, err := os.ReadFile(Nebula_conf_folder + csr.Hostname + ".pub")
 			if err != nil {
 				Enroll_chan <- -1 * time.Second
 				return
 			}
-			os.Remove(csr.Hostname + ".pub")
+			os.Remove(Nebula_conf_folder + csr.Hostname + ".pub")
 			csr.PublicKey, _, err = cert.UnmarshalX25519PublicKey(b)
 			if err != nil {
 				Enroll_chan <- -1 * time.Second

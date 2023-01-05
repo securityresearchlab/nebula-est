@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/m4rkdc/nebula_est/nest_service v0.0.0-20221117150508-8b339726ab70
 	github.com/slackhq/nebula v1.6.1
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -26,7 +27,6 @@ require (
 	golang.org/x/net v0.0.0-20220403103023-749bd193bc2b // indirect
 	golang.org/x/sys v0.0.0-20220406155245-289d7a0edf71 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 

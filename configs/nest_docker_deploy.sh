@@ -22,7 +22,7 @@ cp ../../../nest_system_ca.crt ../../../nebula .
 cd ../../../nest_config
 mkdir log config dhall
 cd dhall/
-cp -rf ../../../examples/client/* .
+cp -rf ../../../examples/client/gen/* .
 cd ../config
 mkdir nebula && cd nebula
 cp ../../../nest_system_ca.crt ../../../nebula .
@@ -34,11 +34,11 @@ cd config
 mkdir tls && cd tls
 # If you want to self-sign your nest_service tls certificate
 openssl ecparam -name prime256v1 -genkey -noout -out nest_service-key.pem
-openssl req -new -x509 -key nest_service-key.pem -out nest_service-crt.pem -days 365
+openssl req -new -x509 -config /mnt/d/Uni/Tesi/Magistrale/nebula_est/configs/openssl.conf -key nest_service-key.pem -out nest_service-crt.pem
 
 # If you want to use an already created internal CA, first copy it in the configs folder, then
 #openssl ecparam -name prime256v1 -genkey -noout -out nest_service-key.pem
-#openssl req -new -sha256 -key nest_service-key.pem -out nest_service.csr
+#openssl req -config ./openssl.conf -new -sha256 -key nest_service-key.pem -out nest_service.csr
 #openssl x509 -signkey ../../../ca-key.pem -in nest_service.csr -req -days 365 -out nest_service-crt.pem
 #rm nest_service.csr
 
@@ -48,7 +48,7 @@ cp ../../../nest_system_ca.crt ../../../nebula .
 ../../../nebula-cert sign -ip 192.168.80.3/24 -name nest_service -ca-key ../../../nest_system_ca.key -ca-crt nest_system_ca.crt
 
 cd ../
-head /dev/urandom | sha256sum > hmac.key
+head /dev/urandom | sha256sum | head -c 64 > hmac.key
 
 cd ../../
 rm nebula* *.crt *.key
@@ -59,9 +59,10 @@ cp ../examples/system/nest_config.yml nest_config/config/nebula/config.yml
 echo 1 > done_gen
 }
 
+
 if [ ! -f ./done_gen ]; then
     echo "Configs are not present, generating..."
     generate_configs
 fi 
 
-docker compose up -d
+docker compose -p "nest_services" up -d 

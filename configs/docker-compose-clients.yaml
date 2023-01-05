@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  nest_client_lin_64:
+    container_name: nest_client_lin_64
+    image: nest_client_lin_64
+    volumes:
+      - ./nest_client_lin_64/:/home/nest_client/mnt
+    env_file:
+      - nest_client_lin_64.env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    networks:
+      - lin_64_net
+    ports:
+      - "42424:4242/udp"
+  
+  nest_client_lin_386:
+    container_name: nest_client_lin_386
+    image: nest_client_lin_386
+    volumes:
+      - ./nest_client_lin_386/:/home/nest_client/mnt
+    env_file:
+      - nest_client_lin_386.env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    platform: linux/386
+    networks:
+      - lin_386_net
+    ports:
+      - "42426:4242/udp"
+  
+#  nest_client_android:
+#    container_name: nest_client_android
+#    image: nest_client_android
+#    volumes:
+#      - ./nest_client_android/:/home/nest_client/mnt
+#    env_file:
+#      - nest_client_android.env
+#    cap_add:
+#      - NET_ADMIN
+#    devices:
+#      - /dev/net/tun
+#    networks:
+#      - lin_android_net
+#    ports:
+#      - "42425:4242/udp"
+
+networks:
+  lin_64_net:
+    name: lin_64_net
+    driver: bridge
+  lin_386_net:
+    name: lin_386_net
+    driver: bridge
+#  lin_android_net:
+#    name: lin_android_net
+#    driver: bridge

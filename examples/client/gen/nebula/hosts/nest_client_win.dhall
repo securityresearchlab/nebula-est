@@ -1,17 +1,17 @@
 let nebula = ../../package.dhall
 let lighthouse = ./lighthouse.dhall
-let client1
+let nest_client_win
 : nebula.Host.Type
     = nebula.Host::{
-      , name = "client1"
-      , ip = nebula.mkIPv4 192 168 100 2
-      , pki =
-          nebula.mkPkiInfo
-            "C:\\Users\\Giorgia\\Documents\\Universita\\Magistrale-Ingegneria_informatica\\Tesi\\nebula-windows-amd64"
+      , name = "nest_client_win"
+      , ip = nebula.mkIPv4 192 168 90 3
+      , pki = 
+          nebula.mkPkiInfo 
+            "D:\\Uni\\Tesi\\Magistrale\\nest_client_win\\config\\nebula"
             "ca"
-            "client1"
+            "nest_client_win"
       , lighthouse = nebula.LighthouseInfo.default
       , punchy = nebula.PunchyInfo::{ punch = True, respond = Some True }
       , relays = [ lighthouse.ip ]
       }
-in client1
+in nest_client_win

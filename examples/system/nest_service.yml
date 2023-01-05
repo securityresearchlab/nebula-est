@@ -42,7 +42,7 @@ static_host_map:
   '192.168.80.1': ["nest_ca:4242"]
   '192.168.80.2': ["nest_config:4242"]
 tun:
-  dev: nebula
+  dev: nebula_service
   disabled: false
   drop_local_broadcast: false
   drop_multicast: false

@@ -174,6 +174,9 @@ func getRawCaResponse(ca_response *models.CaResponse) ([]byte, error) {
 	raw_ca_response := models.RawCaResponse{
 		NebulaCert: raw_cert,
 	}
+	if len(ca_response.NebulaPrivateKey) != 0 {
+		raw_ca_response.NebulaPrivateKey = ca_response.NebulaPrivateKey
+	}
 	b, err := proto.Marshal(&raw_ca_response)
 	if err != nil {
 		fmt.Println("Error in marshalling RawCaResponse:" + err.Error())

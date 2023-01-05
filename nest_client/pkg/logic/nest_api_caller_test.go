@@ -116,7 +116,7 @@ func TestEnroll(t *testing.T) {
 			continue
 		}
 	}
-	b, err := os.ReadFile("ncsr_status")
+	b, err := os.ReadFile(Conf_folder + "ncsr_status")
 	assert.Equal(t, err, nil)
 	ok, err := regexp.Match("Completed", b)
 	assert.Equal(t, err, nil)
@@ -175,7 +175,7 @@ func TestServerKeygen(t *testing.T) {
 			continue
 		}
 	}
-	b, err := os.ReadFile("ncsr_status")
+	b, err := os.ReadFile(Conf_folder + "ncsr_status")
 	assert.Equal(t, err, nil)
 	ok, err := regexp.Match("Completed", b)
 	assert.Equal(t, err, nil)
@@ -228,7 +228,7 @@ func TestReenroll(t *testing.T) {
 			continue
 		}
 	}
-	b, err := os.ReadFile("ncsr_status")
+	b, err := os.ReadFile(Conf_folder + "ncsr_status")
 	assert.Equal(t, err, nil)
 	ok, err := regexp.Match("Completed", b)
 	assert.Equal(t, err, nil)
@@ -254,7 +254,7 @@ func TestReenroll(t *testing.T) {
 			continue
 		}
 	}
-	b, err = os.ReadFile("ncsr_status")
+	b, err = os.ReadFile(Conf_folder + "ncsr_status")
 	assert.Equal(t, err, nil)
 	ok, err = regexp.Match("Completed", b)
 	assert.Equal(t, err, nil)

@@ -44,16 +44,15 @@ func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error
 		path    string
 	)
 
-	start := "key: \""
-	end := ".key\""
+	start := "key: "
+	end := ".key"
+	b = bytes.ReplaceAll(b, []byte("\""), []byte(""))
 	low := bytes.Index(b, []byte(start))
 	high := bytes.Index(b, []byte(end))
-	if low == -1 && high == -1 {
+	/*if low == -1 && high == -1 {
 		start = "key: "
 		end = ".key"
-	}
-	low = bytes.Index(b, []byte(start))
-	high = bytes.Index(b, []byte(end))
+	}*/
 	path = string(b[low+len(start) : high-len(hostname)])
 
 	b, err := os.ReadFile(utils.Dhall_dir + "nebula/hosts/" + hostname + ".dhall")
@@ -87,7 +86,6 @@ func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error
 				ip_mask = append(ip_mask, v)
 			}
 			if len(ip_mask) != 0 {
-				fmt.Println("Ip: " + ip + " Ip mask:" + string(ip_mask))
 				ip += "/" + string(ip_mask)
 			}
 		}

@@ -102,8 +102,14 @@ func main() {
 		os.Exit(8)
 	}
 
-	if err = utils.SetupNebula(utils.Nebula_folder); err != nil {
-		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err.Error())
+	nebula_log, err := os.OpenFile(utils.Nebula_folder+"nest_ca_nebula.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		fmt.Printf("There was an error creating nebula log file: %v\n", err)
+		os.Exit(8)
+	}
+	defer nebula_log.Close()
+	if err := utils.SetupNebula(utils.Nebula_folder, nebula_log); err != nil {
+		fmt.Printf("There was an error setting up the Nebula tunnel:%v\n", err)
 		os.Exit(9)
 	}
 

@@ -10,30 +10,32 @@ let Map =
 
 let lighthouse = ./hosts/lighthouse.dhall
     
+let nest_client_lin_64 = ./hosts/nest_client_lin_64.dhall
 
-let client1 = ./hosts/client1.dhall
+let nest_client_lin_386 = ./hosts/nest_client_lin_386.dhall
     
+let nest_client_android = ./hosts/nest_client_android.dhall
 
-let client2 = ./hosts/client2.dhall
+let nest_client_win = ./hosts/nest_client_win.dhall
 
 let hosts_list
     : List nebula.Host.Type
-    = [ lighthouse, client1, client2 ]
+    = [ lighthouse, nest_client_lin_64, nest_client_win, nest_client_lin_386, nest_client_android ]
 
 let all_group
     : nebula.Group
     = { group_name = "all", group_hosts = hosts_list }
 
-let home_group
+let lin_group
     : nebula.Group
-    = { group_name = "home", group_hosts = [ client1 ] }
+    = { group_name = "lin", group_hosts = [ nest_client_lin_64, nest_client_lin_386 ] }
 
-let home_connection
+let lin_connection
     : nebula.Connection
     = nebula.mkIntraGroupConnection
         nebula.Port.AnyPort
         nebula.Proto.TCP
-        home_group
+        lin_group
         (None Text)
         (None Text)
 
@@ -60,8 +62,8 @@ let icmp_connection
 let network
     : nebula.Network
     = { hosts = hosts_list
-      , groups = [ all_group, home_group ]
-      , connections = [ home_connection, outbound_connection, icmp_connection ]
+      , groups = [ all_group, lin_group ]
+      , connections = [ lin_connection, outbound_connection, icmp_connection ]
       , blocklist = [] : List Text
       , cipher = nebula.Cipher.Chachapoly
       , ip_mask = 24

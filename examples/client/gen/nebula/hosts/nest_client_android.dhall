@@ -1,13 +1,17 @@
 let nebula = ../../package.dhall
 let lighthouse = ./lighthouse.dhall
-let client2
+let nest_client_android
 : nebula.Host.Type
     = nebula.Host::{
-      , name = "client2"
-      , ip = nebula.mkIPv4 192 168 100 3
-      , pki = nebula.mkPkiInfo "/home/gio/tesi" "ca" "client2"
+      , name = "nest_client_android"
+      , ip = nebula.mkIPv4 192 168 90 5
+      , pki =
+          nebula.mkPkiInfo
+            "/home/nest_client/mnt/config/nebula/"
+            "ca"
+            "nest_client_android"
       , lighthouse = nebula.LighthouseInfo.default
       , punchy = nebula.PunchyInfo::{ punch = True, respond = Some True }
       , relays = [ lighthouse.ip ]
       }
-in client2
+in nest_client_android

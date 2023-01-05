@@ -1,0 +1,7 @@
+FROM i386/alpine:3.17
+WORKDIR /home/nest_client
+COPY ./build/nest_client_lin_386 ./nest_client
+RUN apk add --no-cache libc6-compat
+EXPOSE 4242/udp
+ENTRYPOINT ["./nest_client"]
+

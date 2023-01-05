@@ -10,7 +10,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -65,14 +64,14 @@ var (
 
 // setupLogger sets up an io.Multiwriter that writes both on LOG_FILE and os.Stout for the given Gin router
 func SetupLogger(router *gin.Engine, log_file string) error {
-	logF, err := os.OpenFile(log_file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	logF, err := os.OpenFile(log_file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
 
 	gin.ForceConsoleColor()
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Output: io.MultiWriter(logF, os.Stdout),
+		Output: logF,
 	}))
 	return nil
 }
@@ -91,7 +90,7 @@ func IsRWOwner(mode os.FileMode) bool {
 setupNebula controls if the nebula binary is present in NEBULA_FOLDER and, if it is executable, executes it
 to create a Nebula interface. If the interface is actually created, returns nil, err otherwise
 */
-func SetupNebula(nebula_folder string) error {
+func SetupNebula(nebula_folder string, nebula_log *os.File) error {
 	info, err := os.Stat(nebula_folder + "nebula")
 	if err != nil {
 		fmt.Printf("%s doesn't exist. Cannot proceed. Please provide the nebula bin to the service before starting it\nExiting...", nebula_folder+"nebula")
@@ -101,8 +100,10 @@ func SetupNebula(nebula_folder string) error {
 		os.Chmod(nebula_folder+"nebula", 0700)
 	}
 
-	exec.Command(nebula_folder+"nebula", "-config", nebula_folder+"config.yml").Start()
-
+	cmd := exec.Command(nebula_folder+"nebula", "-config", nebula_folder+"config.yml")
+	cmd.Stdout = nebula_log
+	cmd.Stderr = nebula_log
+	cmd.Start()
 	time.Sleep(2 * time.Second)
 	interfaces, err := net.Interfaces()
 
