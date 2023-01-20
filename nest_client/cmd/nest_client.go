@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -32,23 +30,17 @@ func setupNebula(nebula_log *os.File) (*exec.Cmd, error) {
 	os.Chmod(nest_client.Bin_folder+"nebula"+nest_client.File_extension, 0700)
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-service", "install", "-config", nest_client.Nebula_conf_folder+"config.yml")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
-		cmd.Start()
+		exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-service", "install", "-config", nest_client.Nebula_conf_folder+"config.yml").Run()
+		cmd = exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-service", "start")
+		cmd.Stdout = nebula_log
+		cmd.Stderr = nebula_log
 	} else {
 		cmd = exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-config", nest_client.Nebula_conf_folder+"config.yml")
 		cmd.Stdout = nebula_log
 		cmd.Stderr = nebula_log
 	}
-
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command(nest_client.Bin_folder+"nebula"+nest_client.File_extension, "-service", "start")
-		cmd.Stdout = nebula_log
-		cmd.Stderr = nebula_log
-	}
 	cmd.Start()
-	time.Sleep(3 * time.Second)
+	/*time.Sleep(3 * time.Second)
 
 	interfaces, err := net.Interfaces()
 
@@ -68,8 +60,31 @@ func setupNebula(nebula_log *os.File) (*exec.Cmd, error) {
 	if found {
 		return cmd, nil
 	}
-	return nil, errors.New("could not setup a nebula tunnel")
+	return nil, errors.New("could not setup a nebula tunnel")*/
+	return cmd, nil
 }
+
+/*func checkNebulaInterface() error {
+	interfaces, err := net.Interfaces()
+
+	if err != nil {
+		fmt.Printf("Could'nt check information about host interfaces\n")
+		return err
+	}
+
+	var found bool = false
+	for _, i := range interfaces {
+		if strings.Contains(strings.ToLower(i.Name), "nebula") {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return nil
+	}
+	return errors.New("could not setup a nebula tunnel")
+}*/
 
 func main() {
 
@@ -150,13 +165,21 @@ func main() {
 	cmd, err := setupNebula(nebula_log)
 	if err != nil {
 		fmt.Printf("There was an error setting up the Nebula tunnel: %v\n", err)
-		uninstall_nebula()
+		if runtime.GOOS == "windows" {
+			uninstall_nebula()
+		}
 		os.Exit(7)
 	}
 
+	/*if err = checkNebulaInterface(); err != nil {
+		fmt.Printf("There was an error setting up the Nebula tunnel: %v\n", err)
+		uninstall_nebula()
+		os.Exit(7)
+	}*/
+
 	if runtime.GOOS == "windows" {
 		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 		go func() {
 			for sig := range c {
 				fmt.Println("Caught signal: " + sig.String())
