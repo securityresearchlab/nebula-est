@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	"github.com/slackhq/nebula/cert"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -199,6 +202,28 @@ func AuthorizeHost() error {
 	return nil
 }
 
+func createNESTRequest(url string, csr_bytes []byte) (*http.Request, error) {
+	b, err := os.ReadFile(Nebula_auth)
+	if err != nil {
+		return nil, err
+	}
+	secret, err := hex.DecodeString(string(b))
+	if err != nil {
+		return nil, err
+	}
+	otp, err := totp.GenerateCodeCustom(base32.StdEncoding.EncodeToString(secret), time.Now(), totp.ValidateOpts{Digits: 10, Period: 2, Skew: 1, Algorithm: otp.AlgorithmSHA256})
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(csr_bytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("NESToken", otp)
+	return req, nil
+}
+
 func Enroll() error {
 
 	var csr models.NebulaCsr
@@ -232,7 +257,12 @@ func Enroll() error {
 	if client == nil {
 		return errors.New("error in reading nest certificate")
 	}
-	resp, err := client.Post("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/enroll", "application/json", bytes.NewReader(csr_bytes))
+
+	req, err := createNESTRequest("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/enroll", csr_bytes)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return err
@@ -300,7 +330,12 @@ func ServerKeygen() error {
 	if client == nil {
 		return errors.New("error in reading nest certificate")
 	}
-	resp, err := client.Post("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/serverkeygen", "application/json", bytes.NewReader(csr_bytes))
+
+	req, err := createNESTRequest("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/serverkeygen", csr_bytes)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return err
@@ -391,7 +426,13 @@ func Reenroll() {
 		Enroll_chan <- -1 * time.Second
 		return
 	}
-	resp, err := client.Post("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/reenroll", "application/json", bytes.NewReader(csr_bytes))
+
+	req, err := createNESTRequest("https://"+Nest_service_ip+":"+Nest_service_port+"/ncsr/"+Hostname+"/reenroll", csr_bytes)
+	if err != nil {
+		Enroll_chan <- -1 * time.Second
+		return
+	}
+	resp, err := client.Do(req)
 
 	if err != nil {
 		Enroll_chan <- -1 * time.Second

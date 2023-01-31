@@ -103,13 +103,13 @@ func TestNcsrApplication(t *testing.T) {
 	//Fifth test: cannot find key
 	os.Remove(utils.Ncsr_folder + "lighthouse")
 	auth.Hostname = "lighthouse"
-	auth.Secret = sign("abc")
+	auth.Secret = sign("abc", nil)
 	resp = sendNcsrApplication(t, r, endpoint, auth)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
 	utils.HMAC_key = "../../test/config/hmac.key"
 	//Sixth test: secret is not valid
-	auth.Secret = sign("abc")
+	auth.Secret = sign("abc", nil)
 	err = models.ApiError{Code: 400, Message: "Bad Request. Could not succesfully verify the provided secret"}
 	errBytes, _ = json.Marshal(err)
 	resp = sendNcsrApplication(t, r, endpoint, auth)
@@ -117,7 +117,7 @@ func TestNcsrApplication(t *testing.T) {
 	assert.Equal(t, errBytes, resp.Body.Bytes())
 
 	//Seventh test: success
-	auth.Secret = sign(auth.Hostname)
+	auth.Secret = sign(auth.Hostname, nil)
 	resp = sendNcsrApplication(t, r, endpoint, auth)
 	assert.Equal(t, http.StatusCreated, resp.Code)
 	assert.Equal(t, "http://"+utils.Service_ip+":"+utils.Service_port+"/ncsr/"+auth.Hostname, resp.Header().Get("Location"))

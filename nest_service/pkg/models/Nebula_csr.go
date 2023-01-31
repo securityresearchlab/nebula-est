@@ -36,12 +36,13 @@ const (
   - publicKey: byte stream indicating the client-generated publicKey. Can be omitted if serverKeygen is true
 */
 type NebulaCsr struct {
+	//Indicates if the Nebula key pair has to be generated on the server or not. False if empty
 	ServerKeygen bool `json:"serverKeygen,omitempty"`
-
+	//Used in re-enrollment CSRs. Indicates if the Nebula key pair has to be regenerated for the new Nebula certificate. False if empty
 	Rekey bool `json:"rekey,omitempty"`
-
+	//The hostname of the requesting client. Required
 	Hostname string `json:"hostname"`
-
+	//Byte stream indicating the client-generated Nebula public Key. Can be omitted if serverKeygen is true
 	PublicKey []byte `json:"publicKey,omitempty"`
 
 	//Pop []byte `json:"POP,omitempty"`

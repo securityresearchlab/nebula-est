@@ -151,9 +151,17 @@ func main() {
 	fmt.Println("NEST client: setup finished")
 	//todo add error channel
 	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert" + nest_client.File_extension); err != nil {
-		nest_client.ServerKeygen()
+		err := nest_client.ServerKeygen()
+		if err != nil {
+			fmt.Printf("There was an error in the enrollment request: %v\n", err)
+			os.Exit(10)
+		}
 	} else {
-		nest_client.Enroll()
+		err := nest_client.Enroll()
+		if err != nil {
+			fmt.Printf("There was an error in the enrollment request: %v\n", err)
+			os.Exit(10)
+		}
 	}
 	fmt.Println("NEST client: enrollment successfull. Writing conf files and keys to " + nest_client.Nebula_conf_folder)
 	nebula_log, err := os.OpenFile(nest_client.Nebula_conf_folder+nest_client.Hostname+"_nebula.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
