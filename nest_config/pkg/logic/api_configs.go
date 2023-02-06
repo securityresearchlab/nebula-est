@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,20 @@ var Conf_routes = [3]models.Route{
 			Pattern:     "/validate",
 			HandlerFunc: ValidateCertificate,
 		},*/
+}
+
+// generateAllNebulaConfigs generates Nebula configuration files for every client using the dhall-nebula tool
+func GenerateAllNebulaConfigs() error {
+	pwd, _ := os.Getwd()
+	pwd += "/"
+	fmt.Println("Generating nebula configuration files...")
+	out, err := exec.Command(pwd+utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir", pwd+utils.Dhall_dir, "--configFileName", utils.Dhall_configuration, "config", "--configsPath", utils.Conf_gen_dir).CombinedOutput()
+	if err != nil {
+		fmt.Println("Error in dhall-nebula: " + string(out))
+		return err
+	}
+
+	return nil
 }
 
 func parseDhallFiles(b []byte, hostname string) ([]string, string, string, error) {
@@ -126,6 +141,20 @@ func GetConfig(c *gin.Context) {
 		return
 	}
 
+	info, err := os.Stat(utils.Dhall_dir + utils.Dhall_configuration)
+	if err != nil {
+		fmt.Println("Internal server Error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal Server Error: " + err.Error()})
+		return
+	}
+
+	//TODO: move the regeneration on another goroutine to not block the requests. maybe add request information on if this is a renerollment
+	current_dhall_date := info.ModTime()
+
+	if current_dhall_date.After(utils.Dhall_last_modified) {
+		fmt.Println("Dhall configuration has been modified...")
+		GenerateAllNebulaConfigs()
+	}
 	//Read the whole generated yaml file and return it in conf_resp
 	b, err := os.ReadFile(utils.Dhall_dir + "nebula/generated/" + hostname + ".yaml")
 	if err != nil {

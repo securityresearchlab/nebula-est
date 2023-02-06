@@ -37,15 +37,15 @@ func sign(hostname string, rand []byte) []byte {
 	return mac.Sum(rand)
 }
 
-// The Verify function verifies if the given secret corresponds to the HMAC of the client hostname
-func verify(hostname string, secret []byte) (bool, error) {
+// The Verify function verifies if the given client_authenticator corresponds to the HMAC of the client hostname
+func verify(hostname string, client_authenticator []byte) (bool, error) {
 	key, err := os.ReadFile(utils.HMAC_key)
 	if err != nil {
 		return false, &models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()}
 	}
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(hostname))
-	return hmac.Equal(secret, mac.Sum(nil)), nil
+	return hmac.Equal(client_authenticator, mac.Sum(nil)), nil
 }
 
 // models.Service_routes contains the routes considered by the nest_service router
@@ -179,14 +179,13 @@ func getRawCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*mod
 	var conf_resp *models.ConfResponse
 	var raw_ca_response *models.RawCaResponse
 	var err error
-	if option != models.RENROLL {
-		conf_resp, err = requestConf(hostname)
-		if err != nil {
-			return nil, err
-		}
-		csr.Groups = conf_resp.Groups
-		csr.Ip = conf_resp.Ip
+
+	conf_resp, err = requestConf(hostname)
+	if err != nil {
+		return nil, err
 	}
+	csr.Groups = conf_resp.Groups
+	csr.Ip = conf_resp.Ip
 
 	raw_ca_response, err = sendCSR(csr, option)
 	if err != nil {
@@ -198,10 +197,9 @@ func getRawCSRResponse(hostname string, csr *models.NebulaCsr, option int) (*mod
 	if csr.ServerKeygen {
 		raw_csr_resp.NebulaPrivateKey = raw_ca_response.NebulaPrivateKey
 	}
-	if option != models.RENROLL {
-		raw_csr_resp.NebulaConf = conf_resp.NebulaConf
-		raw_csr_resp.NebulaPath = &conf_resp.NebulaPath
-	}
+
+	raw_csr_resp.NebulaConf = conf_resp.NebulaConf
+	raw_csr_resp.NebulaPath = &conf_resp.NebulaPath
 
 	if err = updateStatus(raw_ca_response, hostname); err != nil {
 		return nil, err
@@ -302,13 +300,16 @@ func requestConf(hostname string) (*models.ConfResponse, error) {
 	return &response, nil
 }
 
-/*func createNESToken(hostname string) ([]byte, error) {
-	rand, err := rand.Prime(rand.Reader, 1024)
+func checkClientToken(client_token string, hostname string) error {
+	ok, err := totp.ValidateCustom(client_token, base32.StdEncoding.EncodeToString(sign(hostname, nil)), time.Now(),
+		totp.ValidateOpts{Digits: 10, Period: 2, Skew: 1, Algorithm: otp.AlgorithmSHA256})
 	if err != nil {
-		return nil, err
+		return &models.ApiError{Code: 401, Message: "Unhautorized: " + err.Error()}
+	} else if !ok {
+		return &models.ApiError{Code: 401, Message: "Unhautorized: your token is invalid"}
 	}
-	return sign(hostname, rand.Bytes()), nil
-}*/
+	return nil
+}
 
 /*
 The NcsrApplication REST endpoint starts the procedure of enrollment of a NEST client to the system. It authenticates the client to the system before it can continue.
@@ -387,6 +388,16 @@ func NcsrStatus(c *gin.Context) {
 		return
 	}
 
+	client_token := c.Request.Header.Get("NESToken")
+	if len(strings.TrimSpace(client_token)) == 0 {
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
+		return
+	}
+	if err := checkClientToken(client_token, hostname); err != nil {
+		c.JSON(http.StatusUnauthorized, err)
+		return
+	}
+
 	file, err := os.Open(utils.Ncsr_folder + hostname)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.ApiError{Code: 404, Message: "Not found. Could not find an open Nebula CSR application for the specified hostname. If you want to enroll, provide your hostname to http:" + utils.Service_ip + ":" + utils.Service_port + "/ncsr"})
@@ -454,12 +465,8 @@ func Enroll(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
-	ok, err := totp.ValidateCustom(client_token, base32.StdEncoding.EncodeToString(sign(hostname, nil)), time.Now(), totp.ValidateOpts{Digits: 10, Period: 2, Skew: 1, Algorithm: otp.AlgorithmSHA256})
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: " + err.Error()})
-		return
-	} else if !ok {
-		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: your token is invalid"})
+	if err := checkClientToken(client_token, hostname); err != nil {
+		c.JSON(http.StatusUnauthorized, err)
 		return
 	}
 	var csr models.NebulaCsr
@@ -521,9 +528,8 @@ func Reenroll(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
-	ok, err := totp.ValidateCustom(client_token, base32.StdEncoding.EncodeToString(sign(hostname, nil)), time.Now(), totp.ValidateOpts{Digits: 10, Period: 2, Skew: 1, Algorithm: otp.AlgorithmSHA256})
-	if err != nil || !ok {
-		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: your token is invalid"})
+	if err := checkClientToken(client_token, hostname); err != nil {
+		c.JSON(http.StatusUnauthorized, err)
 		return
 	}
 
@@ -584,10 +590,8 @@ func Serverkeygen(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
-
-	ok, err := totp.ValidateCustom(client_token, base32.StdEncoding.EncodeToString(sign(hostname, nil)), time.Now(), totp.ValidateOpts{Digits: 10, Period: 2, Skew: 1, Algorithm: otp.AlgorithmSHA256})
-	if err != nil || !ok {
-		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: your token is invalid"})
+	if err := checkClientToken(client_token, hostname); err != nil {
+		c.JSON(http.StatusUnauthorized, err)
 		return
 	}
 

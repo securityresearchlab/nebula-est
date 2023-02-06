@@ -37,7 +37,6 @@ var (
 	File_extension     string = ""
 )
 
-// todo: check nebula-cert generation times
 func reenrollAfter(crt cert.NebulaCertificate) {
 	os.WriteFile(Conf_folder+"ncsr_status", []byte("Completed\n"+crt.Details.NotAfter.String()), 0600)
 	Enroll_chan <- time.Until(crt.Details.NotAfter)
@@ -52,13 +51,15 @@ func setupTLSClient() *http.Client {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12,
+		TLSClientConfig: &tls.Config{
+			MinVersion:               tls.VersionTLS12,
 			MaxVersion:               tls.VersionTLS13,
 			PreferServerCipherSuites: true,
+			CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
 			CipherSuites: []uint16{
+				tls.TLS_AES_256_GCM_SHA384,
+				tls.TLS_CHACHA20_POLY1305_SHA256,
 				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			},
 			RootCAs: caCertPool},
 	}
@@ -355,7 +356,6 @@ func ServerKeygen() error {
 		}
 		Nebula_conf_folder = csr_response.NebulaPath
 		os.Mkdir(Nebula_conf_folder, 0700)
-		Nebula_conf_folder = csr_response.NebulaPath
 		key := cert.MarshalX25519PrivateKey(csr_response.NebulaPrivateKey)
 		os.WriteFile(Nebula_conf_folder+csr.Hostname+".key", key, 0600)
 		if err := os.Rename(Conf_folder+"ca.crt", Nebula_conf_folder+"ca.crt"); err != nil {
@@ -370,10 +370,15 @@ func ServerKeygen() error {
 		reenrollAfter(csr_response.NebulaCert)
 
 	case resp.StatusCode >= 400:
-		if json.Unmarshal(b, error_response) != nil {
-			if error_response != nil {
+		if json.Unmarshal(b, &error_response) == nil {
+			if error_response.Code != 0 {
 				return error_response
+			} else {
+				fmt.Println("There was an error unmarshalling the error response: " + err.Error())
+				return err
 			}
+		} else {
+			return errors.New("issues unmarshalling json error response: " + string(b))
 		}
 	}
 	return nil
@@ -453,6 +458,13 @@ func Reenroll() {
 			Enroll_chan <- -1 * time.Second
 			return
 		}
+		if Nebula_conf_folder != csr_response.NebulaPath {
+			os.RemoveAll(Nebula_conf_folder)
+			Nebula_conf_folder = csr_response.NebulaPath
+			os.Mkdir(Nebula_conf_folder, 0700)
+		}
+
+		os.WriteFile(Nebula_conf_folder+"config.yml", csr_response.NebulaConf, 0600)
 		if csr.ServerKeygen {
 			key := cert.MarshalX25519PrivateKey(csr_response.NebulaPrivateKey)
 			os.WriteFile(Nebula_conf_folder+csr.Hostname+".key", key, 0600)
@@ -463,7 +475,6 @@ func Reenroll() {
 			Enroll_chan <- -1 * time.Second
 			return
 		}
-		os.Remove(Nebula_conf_folder + Hostname + ".crt")
 		os.WriteFile(Nebula_conf_folder+Hostname+".crt", b, 0600)
 		reenrollAfter(csr_response.NebulaCert)
 

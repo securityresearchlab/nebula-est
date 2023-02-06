@@ -116,6 +116,7 @@ func main() {
 	fmt.Println("NEST CA service: setup finished")
 
 	router := gin.Default()
+	router.SetTrustedProxies(nil)
 	utils.SetupLogger(router, utils.Log_file)
 	for _, r := range nest_ca.Ca_routes {
 		switch r.Method {

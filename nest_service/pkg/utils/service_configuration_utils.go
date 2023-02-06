@@ -60,6 +60,8 @@ var (
 	Ca_bin string = "config/bin/nebula-cert"
 	//Folder containing NEST CA's Nebula certificate and private key used to sign client certificates
 	Ca_keys_path string = "config/keys/"
+	//Last update of dhall configuration file
+	Dhall_last_modified time.Time
 )
 
 // setupLogger sets up an io.Multiwriter that writes both on LOG_FILE and os.Stout for the given Gin router

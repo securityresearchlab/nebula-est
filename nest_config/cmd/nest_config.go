@@ -10,27 +10,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/gin-gonic/gin"
 	nest_config "github.com/m4rkdc/nebula_est/nest_config/pkg/logic"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 )
-
-// generateAllNebulaConfigs generates Nebula configuration files for every client using the dhall-nebula tool
-func generateAllNebulaConfigs() error {
-	pwd, _ := os.Getwd()
-	os.Chdir(utils.Dhall_dir + "bin/")
-	fmt.Println("Generating nebula configuration files...")
-	out, err := exec.Command("./dhall-nebula", "--dhallDir", "../", "--configFileName", utils.Dhall_configuration, "config", "--configsPath", "../"+utils.Conf_gen_dir).CombinedOutput()
-	if err != nil {
-		fmt.Println("Error in dhall-nebula: " + string(out))
-		return err
-	}
-	os.Chdir(pwd)
-
-	return nil
-}
 
 /*
 nest_config is a REST API server which acts as a Nebula Config service for the NEST system.
@@ -81,6 +65,7 @@ func main() {
 	if !utils.IsRWOwner(info.Mode()) {
 		os.Chmod(utils.Dhall_dir+utils.Dhall_configuration, 0600)
 	}
+	utils.Dhall_last_modified = info.ModTime()
 
 	if _, err := os.Stat(utils.Nebula_folder + "nest_config.crt"); err != nil {
 		fmt.Printf("Cannot find NEST config Nebula certificate\n")
@@ -111,7 +96,7 @@ func main() {
 		os.Exit(9)
 	}
 	if dir, _ := os.ReadDir(utils.Dhall_dir + utils.Conf_gen_dir); len(dir) == 0 {
-		if err = generateAllNebulaConfigs(); err != nil {
+		if err = nest_config.GenerateAllNebulaConfigs(); err != nil {
 			fmt.Println("Could not generate Nebula configuration files: " + err.Error())
 			os.Exit(3)
 		}
@@ -120,6 +105,7 @@ func main() {
 	fmt.Println("NEST config service: setup finished")
 
 	router := gin.Default()
+	router.SetTrustedProxies(nil)
 	utils.SetupLogger(router, utils.Log_file)
 	for _, r := range nest_config.Conf_routes {
 		switch r.Method {

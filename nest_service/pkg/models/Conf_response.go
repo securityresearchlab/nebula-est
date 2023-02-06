@@ -8,7 +8,7 @@
  */
 package models
 
-// Response returned by the Nebula config service to the NEST servicetype ConfResponse struct
+// Response returned by the Nebula config service to the NEST service
 type ConfResponse struct {
 	//The newly generated Nebula configuration file.
 	NebulaConf []byte `json:"nebulaConf"`

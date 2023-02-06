@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	nest_client "github.com/m4rkdc/nebula_est/nest_client/pkg/logic"
+	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
 )
 
 func uninstall_nebula() {
@@ -126,10 +128,16 @@ func main() {
 		os.Exit(2)
 	}
 
-	if _, err := os.Stat(nest_client.Nebula_auth); err != nil {
+	info, err := os.Stat(nest_client.Nebula_auth)
+	if err != nil {
 		fmt.Printf("Cannot find nest_client authorization token. Please provide the authorization token before starting nest_client\n")
 		os.Exit(3)
 	}
+
+	if info.Mode()&0600 != 0 {
+		os.Chmod(nest_client.Nebula_auth, 0600)
+	}
+
 	if len(nest_client.Hostname) == 0 {
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -139,31 +147,42 @@ func main() {
 		nest_client.Hostname = hostname
 	}
 
-	if err := nest_client.GetCACerts(); err != nil {
-		fmt.Printf("There was an error getting the NEST client Nebula Network CAs: %v\n", err.Error())
-		os.Exit(5)
+	if _, err := os.Stat(nest_client.Conf_folder + "ncsr_status"); os.IsNotExist(err) {
+		if err := nest_client.GetCACerts(); err != nil {
+			fmt.Printf("There was an error getting the NEST client Nebula Network CAs: %v\n", err.Error())
+			os.Exit(5)
+		}
+
+		if err := nest_client.AuthorizeHost(); err != nil {
+			fmt.Printf("There was an error authorizing the nest client: %v\n", err.Error())
+			os.Exit(6)
+		}
 	}
 
-	if err := nest_client.AuthorizeHost(); err != nil {
-		fmt.Printf("There was an error authorizing the nest client: %v\n", err.Error())
-		os.Exit(6)
-	}
 	fmt.Println("NEST client: setup finished")
 	//todo add error channel
-	if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert" + nest_client.File_extension); err != nil {
-		err := nest_client.ServerKeygen()
-		if err != nil {
-			fmt.Printf("There was an error in the enrollment request: %v\n", err)
-			os.Exit(10)
+
+	b, _ := os.ReadFile(nest_client.Conf_folder + "ncsr_status")
+
+	if isPending, _ := regexp.Match(string(models.PENDING), b); isPending {
+		if _, err := os.Stat(nest_client.Bin_folder + "nebula-cert" + nest_client.File_extension); err != nil {
+			err := nest_client.ServerKeygen()
+			if err != nil {
+				fmt.Printf("There was an error in the enrollment request: %v\n", err)
+				os.Exit(10)
+			}
+		} else {
+			err := nest_client.Enroll()
+			if err != nil {
+				fmt.Printf("There was an error in the enrollment request: %v\n", err)
+				os.Exit(10)
+			}
 		}
+		fmt.Println("NEST client: enrollment successfull. Writing conf files and keys to " + nest_client.Nebula_conf_folder)
 	} else {
-		err := nest_client.Enroll()
-		if err != nil {
-			fmt.Printf("There was an error in the enrollment request: %v\n", err)
-			os.Exit(10)
-		}
+		nest_client.Reenroll()
 	}
-	fmt.Println("NEST client: enrollment successfull. Writing conf files and keys to " + nest_client.Nebula_conf_folder)
+
 	nebula_log, err := os.OpenFile(nest_client.Nebula_conf_folder+nest_client.Hostname+"_nebula.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		fmt.Printf("There was an error creating nebula log file: %v\n", err)

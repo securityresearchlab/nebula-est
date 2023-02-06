@@ -30,8 +30,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/m4rkdc/nebula_est/nest_config v0.0.0-20221117150508-8b339726ab70 => ../nest_config
-
-replace github.com/m4rkdc/nebula_est/nest_service v0.0.0-20221117150508-8b339726ab70 => ../nest_service
-
-replace github.com/m4rkdc/nebula_est/nest_ca v0.0.0-20221117150508-8b339726ab70 => ./
