@@ -1,5 +1,8 @@
 github.com/go-playground/validator/v10 v10.11.1/go.mod h1:i+3WkQ1FvaUjjxh1kSvIA4dMGDBiPU55YFDl0WbKdWU=
 github.com/goccy/go-json v0.9.11/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
+github.com/m4rkdc/nebula_est/nest_ca v0.0.0-20230206141902-79aed3e86e20/go.mod h1:eRXR68zmxdhEDDjnpxQqQmekf8UWKdvyR08+EOAV4Fk=
+github.com/m4rkdc/nebula_est/nest_config v0.0.0-20230206141902-79aed3e86e20/go.mod h1:8hYUltfdcPnYPL8qTvlKGVMDGG8RzStKqLAzy/Ch65s=
+github.com/m4rkdc/nebula_est/nest_service v0.0.0-20230206141902-79aed3e86e20/go.mod h1:F6D/K2jx5xqtLdwwJ+uaPlfxeXBJ2x5U7DIBGBB4CLI=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/ugorji/go v1.2.7 h1:qYhyWUUd6WbiM+C6JZAUkIJt/1WrjzNHY9+KCIjVqTo=
 golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=

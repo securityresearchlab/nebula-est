@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/m4rkdc/nebula_est/nest_service v0.0.0-20221117150508-8b339726ab70
+	github.com/m4rkdc/nebula_est/nest_service v0.0.0-20230206141902-79aed3e86e20
 	github.com/slackhq/nebula v1.6.1
 	google.golang.org/protobuf v1.28.1
 )
