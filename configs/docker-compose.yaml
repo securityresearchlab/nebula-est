@@ -7,15 +7,31 @@ services:
     restart: always
     volumes:
       - ./nest_config/:/home/nest_config/mnt
+    secrets:
+      - source: nest_conf_system_nebula_crt
+        target: /home/nest_config/mnt/config/nebula/nest_config.crt
+        mode: 0600
+      - source: nest_conf_system_nebula_key
+        target: /home/nest_config/mnt/config/nebula/nest_config.key
+        mode: 0600
+      - source: nest_system_ca_crt
+        target: /home/nest_config/mnt/config/nebula/nest_system_ca.crt
+        mode: 0600
+      - source: nest_config_nebula_conf
+        target: /home/nest_config/mnt/config/nebula/config.yml
+        mode: 0600
+      - source: nebula_dhall_conf
+        target: /home/nest_config/mnt/dhall/nebula/nebula_conf.dhall
+        mode: 0600
     env_file:
       - nest_config.env
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun
-    networks:
-      NESTSystemNetwork:
-        ipv4_address: 192.168.168.5
+#    networks:
+#      NESTSystemNetwork:
+#        ipv4_address: 192.168.168.5
   
   nest_ca:
     container_name: nest_ca
@@ -23,6 +39,25 @@ services:
     restart: always
     volumes:
       - ./nest_ca/:/home/nest_ca/mnt
+    secrets:
+      - source: nest_ca_system_nebula_crt
+        target: /home/nest_ca/mnt/config/nebula/nest_ca.crt
+        mode: 0600
+      - source: nest_ca_system_nebula_key
+        target: /home/nest_ca/mnt/config/nebula/nest_ca.key
+        mode: 0600
+      - source: nest_system_ca_crt
+        target: /home/nest_ca/mnt/config/nebula/nest_system_ca.crt
+        mode: 0600
+      - source: nest_ca_nebula_conf
+        target: /home/nest_ca/mnt/config/nebula/config.yml
+        mode: 0600
+      - source: nebula_ca_crt
+        target: /home/nest_ca/mnt/config/keys/ca.crt
+        mode: 0600
+      - source: nebula_ca_key
+        target: /home/nest_ca/mnt/config/keys/ca.key
+        mode: 0600
     env_file:
       - nest_ca.env
     cap_add:
@@ -31,9 +66,9 @@ services:
       - /dev/net/tun
     depends_on:
       - nest_config
-    networks:
-      NESTSystemNetwork:
-        ipv4_address: 192.168.168.4
+#    networks:
+#      NESTSystemNetwork:
+#        ipv4_address: 192.168.168.4
     
   nest_service:
     container_name: nest_service
@@ -41,6 +76,28 @@ services:
     restart: always
     volumes:
       - ./nest_service/:/home/nest_service/mnt
+    secrets:
+      - source: nest_service_system_nebula_crt
+        target: /home/nest_service/mnt/config/nebula/nest_service.crt
+        mode: 0600
+      - source: nest_service_system_nebula_key
+        target: /home/nest_service/mnt/config/nebula/nest_service.key
+        mode: 0600
+      - source: nest_system_ca_crt
+        target: /home/nest_service/mnt/config/nebula/nest_system_ca.crt
+        mode: 0600
+      - source: nest_service_nebula_conf
+        target: /home/nest_service/mnt/config/nebula/config.yml
+        mode: 0600
+      - source: hmac.key
+        target: /home/nest_service/mnt/config/hmac.key
+        mode: 0600
+      - source: nest_service_tls_crt
+        target: /home/nest_service/mnt/config/tls/nest_service-crt.pem
+        mode: 0600
+      - source: nest_service_tls_key
+        target: /home/nest_service/mnt/config/tls/nest_service-key.pem
+        mode: 0600
     env_file:
       - nest_service.env
     ports: 
@@ -52,19 +109,50 @@ services:
     depends_on:
       - nest_ca
       - nest_config
-    networks:
-      NESTSystemNetwork:
-        ipv4_address: 192.168.168.3
+#    networks:
+#      NESTSystemNetwork:
+#        ipv4_address: 192.168.168.3
 
-networks:
-  NESTSystemNetwork:
-    name: NESTSystemNetwork
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.168.0/24
-          gateway: 192.168.168.1
-    
+secrets:
+  nest_conf_system_nebula_crt:
+    file: ./secrets/nest_config.crt
+  nest_conf_system_nebula_key:
+    file: ./secrets/nest_config.key
+  nest_system_ca_crt:
+    file: ./secrets/nest_system_ca.crt
+  nest_config_nebula_conf:
+    file: ./secrets/nest_config.yml
+  nebula_dhall_conf:
+    file: ./secrets/nebula_conf.dhall
+  nest_ca_system_nebula_crt:
+    file: ./secrets/nest_ca.crt
+  nest_ca_system_nebula_key:
+    file: ./secrets/nest_ca.key
+  nest_ca_nebula_conf:
+    file: ./secrets/nest_ca.yml
+  nebula_ca_crt:
+    file: ./secrets/ca.crt
+  nebula_ca_key:
+    file: ./secrets/ca.key
+  nest_service_system_nebula_crt:
+    file: ./secrets/nest_service.crt
+  nest_service_system_nebula_key:
+    file: ./secrets/nest_service.key
+  nest_service_nebula_conf:
+    file: ./secrets/nest_service.yml
+  hmac.key:
+    file: ./secrets/hmac.key
+  nest_service_tls_crt:
+    file: ./secrets/nest_service-crt.pem
+  nest_service_tls_key:
+    file: ./secrets/nest_service-key.pem
 
-
-      
+#networks:
+#  NESTSystemNetwork:
+#    name: NESTSystemNetwork
+#    driver: bridge
+#    ipam:
+#      config:
+#        - subnet: 192.168.168.0/24
+#          gateway: 192.168.168.1
+         

@@ -6,6 +6,13 @@ services:
     image: nest_client_lin_64
     volumes:
       - ./nest_client_lin_64/:/home/nest_client/mnt
+    secrets:
+      - source: nest_client_lin_64_secret
+        target: /home/nest_client/mnt/config/secret.hmac
+        mode: 0400
+      - source: nest_client_tls
+        target: /home/nest_client/mnt/config/tls/nest_service-crt.pem
+        mode: 0600
     env_file:
       - nest_client_lin_64.env
     cap_add:
@@ -23,6 +30,13 @@ services:
     image: nest_client_lin_386
     volumes:
       - ./nest_client_lin_386/:/home/nest_client/mnt
+    secrets:
+      - source: nest_client_lin_386_secret
+        target: /home/nest_client/mnt/config/secret.hmac
+        mode: 0400
+      - source: nest_client_tls
+        target: /home/nest_client/mnt/config/tls/nest_service-crt.pem
+        mode: 0600
     env_file:
       - nest_client_lin_386.env
     cap_add:
@@ -35,6 +49,14 @@ services:
     #  - lin_386_net
     ports:
       - "42426:4242/udp"
+
+secrets:
+  nest_client_lin_64_secret:
+    file: ./secrets/nest_client_lin_64.hmac
+  nest_client_lin_386_secret:
+    file: ./secrets/nest_client_lin_386.hmac
+  nest_client_tls:
+    file: ./secrets/nest_service-crt.pem
 
 #networks:
 #  lin_64_net:

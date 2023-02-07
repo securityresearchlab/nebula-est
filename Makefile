@@ -15,8 +15,8 @@ nest_client_lin_64:
 nest_client_lin_32:
 	cd nest_client;	mkdir build; env GOOS=linux GOARCH=386 go build -o ./build/nest_client_lin_386 cmd/*
 
-nest_client_windows:
-	cd nest_client;	mkdir build; env GOOS=windows GOARCH=amd64 go build -o ./build/nest_client_windows cmd/*
+nest_client_win:
+	cd nest_client;	mkdir build; env GOOS=windows GOARCH=amd64 go build -o ./build/nest_client_win.exe cmd/*
 
 nest_client_lin_arm:
 	cd nest_client;	mkdir build; env GOOS=linux GOARCH=arm go build -o ./build/nest_client_lin_arm cmd/*
