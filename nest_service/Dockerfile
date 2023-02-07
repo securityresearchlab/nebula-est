@@ -10,8 +10,8 @@ RUN go build -o ./nest_service ./cmd/*
 # Deployment phase
 FROM alpine:3.17
 WORKDIR /home/nest_service
-COPY --from=build /home/nest_build/nest_service ./nest_service
 EXPOSE 8080/tcp
 EXPOSE 4242/udp
 RUN apk add --no-cache libc6-compat
+COPY --from=build /home/nest_build/nest_service ./nest_service
 ENTRYPOINT ["./nest_service"]

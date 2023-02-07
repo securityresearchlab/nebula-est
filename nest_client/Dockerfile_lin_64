@@ -19,7 +19,7 @@ RUN --mount=type=secret,id=sshKey,dst=/root/.ssh/id_ed25519 go build -o ./nest_c
 # Deployment phase
 FROM alpine:3.17
 WORKDIR /home/nest_client
-COPY --from=build /home/nest_build/nest_client ./nest_client
 RUN apk add --no-cache libc6-compat
 EXPOSE 4242/udp
+COPY --from=build /home/nest_build/nest_client ./nest_client
 ENTRYPOINT ["./nest_client"]
