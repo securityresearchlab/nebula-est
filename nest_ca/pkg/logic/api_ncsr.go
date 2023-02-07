@@ -226,6 +226,10 @@ func CertificateSign(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, err)
 			return
 		}
+	} else {
+		if _, err := os.Stat(utils.Certificates_path + raw_csr.Hostname + ".crt"); err == nil || !os.IsNotExist(err) {
+			os.Remove(utils.Certificates_path + raw_csr.Hostname + ".crt")
+		}
 	}
 
 	if err := os.WriteFile(utils.Certificates_path+raw_csr.Hostname+".pub", cert.MarshalX25519PublicKey(raw_csr.PublicKey), 0600); err != nil {
@@ -263,6 +267,10 @@ func GenerateKeys(c *gin.Context) {
 			fmt.Println("Internal server Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
 			return
+		}
+	} else {
+		if _, err := os.Stat(utils.Certificates_path + raw_csr.Hostname + ".crt"); err == nil || !os.IsNotExist(err) {
+			os.Remove(utils.Certificates_path + raw_csr.Hostname + ".crt")
 		}
 	}
 
