@@ -1,6 +1,25 @@
+# Building phase
+FROM arm32v7/golang:1.20.0-alpine3.17 AS build
+WORKDIR /home/nest_build
+COPY go.mod go.sum ./
+RUN export GOPATH=/home/nest_build 
+ADD ./cmd ./cmd
+ADD ./pkg ./pkg
+
+# Following lines are for authentication to git private repo
+RUN apk add git
+RUN apk add openssh
+RUN git config --global url.ssh://git@github.com/.insteadOf https://github.com/
+RUN mkdir /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
+ENV GOPRIVATE github.com/m4rkdc/nebula_est/*
+RUN --mount=type=secret,id=sshKey,dst=/root/.ssh/id_ed25519 go build -o ./nest_client ./cmd/*
+
+#RUN go build -o ./nest_client ./cmd/*
+
+# Deployment phase
 FROM arm32v7/alpine
 WORKDIR /home/nest_client
-COPY ./build/nest_client_lin_arm ./nest_client
+COPY --from=build /home/nest_build/nest_client ./nest_client
 RUN apk add --no-cache libc6-compat
 EXPOSE 4242/udp
 ENTRYPOINT ["./nest_client"]

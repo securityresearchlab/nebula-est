@@ -1,3 +1,6 @@
+github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
+github.com/boombuler/barcode v1.0.1 h1:NDBbPmhS+EqABEs5Kg3n/5ZNjy73Pz7SIV+KCeqyXcs=
+github.com/boombuler/barcode v1.0.1/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -27,6 +30,10 @@ github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/leodido/go-urn v1.2.1 h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
 github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ictyFfxY=
+github.com/m4rkdc/nebula_est/nest_ca v0.0.0-20230206141902-79aed3e86e20 h1:MX/0xVSS71XR5cLz03wwIYEumtim12JPRxasUaUOh2k=
+github.com/m4rkdc/nebula_est/nest_ca v0.0.0-20230206141902-79aed3e86e20/go.mod h1:eRXR68zmxdhEDDjnpxQqQmekf8UWKdvyR08+EOAV4Fk=
+github.com/m4rkdc/nebula_est/nest_config v0.0.0-20230206141902-79aed3e86e20 h1:HCc98rAnYOVC/zHGyPoVstFqJYoRNITaj8Xj03OgB38=
+github.com/m4rkdc/nebula_est/nest_config v0.0.0-20230206141902-79aed3e86e20/go.mod h1:8hYUltfdcPnYPL8qTvlKGVMDGG8RzStKqLAzy/Ch65s=
 github.com/m4rkdc/nebula_est/nest_service v0.0.0-20230206141902-79aed3e86e20 h1:W9a6uULeTj4R/bwk+FTNf0pSI+ytL/7QnIFn4mRd60M=
 github.com/m4rkdc/nebula_est/nest_service v0.0.0-20230206141902-79aed3e86e20/go.mod h1:F6D/K2jx5xqtLdwwJ+uaPlfxeXBJ2x5U7DIBGBB4CLI=
 github.com/mattn/go-isatty v0.0.17 h1:BTarxUcIeDqL27Mc+vyvdWYSL28zpIhv3RoTdsLMPng=
@@ -40,6 +47,8 @@ github.com/pelletier/go-toml/v2 v2.0.6 h1:nrzqCb7j9cDFj2coyLNLaZuJTLjWjlaz6nvTvI
 github.com/pelletier/go-toml/v2 v2.0.6/go.mod h1:eumQOmlWiOPt5WriQQqoM5y18pDHwha2N+QD+EUNTek=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/pquerna/otp v1.4.0 h1:wZvl1TIVxKRThZIBiwOOHOGP/1+nZyWBil9Y2XNEDzg=
+github.com/pquerna/otp v1.4.0/go.mod h1:dkJfzwRKNiegxyNb54X/3fLwhCynbMspSyWKnvi1AEg=
 github.com/rogpeppe/go-internal v1.8.0 h1:FCbCCtXNOY3UtUuHUYaghJg4y7Fd14rXifAYUAtL9R8=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/slackhq/nebula v1.6.1 h1:/OCTR3abj0Sbf2nGoLUrdDXImrCv0ZVFpVPP5qa0DsM=

@@ -41,7 +41,7 @@ func GenerateAllNebulaConfigs() error {
 	pwd, _ := os.Getwd()
 	pwd += "/"
 	fmt.Println("Generating nebula configuration files...")
-	out, err := exec.Command(pwd+utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir", pwd+utils.Dhall_dir, "--configFileName", utils.Dhall_configuration, "config", "--configsPath", utils.Conf_gen_dir).CombinedOutput()
+	out, err := exec.Command(pwd+utils.Dhall_dir+"bin/dhall-nebula", "--dhallDir", pwd+utils.Dhall_dir, "--configFileName", utils.Dhall_configuration, "config", "--configsPath", pwd+utils.Dhall_dir+utils.Conf_gen_dir).CombinedOutput()
 	if err != nil {
 		fmt.Println("Error in dhall-nebula: " + string(out))
 		return err

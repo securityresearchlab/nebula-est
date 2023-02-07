@@ -5,8 +5,16 @@ COPY go.mod go.sum ./
 RUN export GOPATH=/home/nest_build   
 ADD ./cmd ./cmd
 ADD ./pkg ./pkg
-ADD ../nest_service/pkg ../nest_service/pkg
-RUN go build -o ./nest_config ./cmd/*
+
+# Following lines are for authentication to git private repo
+RUN apk add git
+RUN apk add openssh
+RUN git config --global url.ssh://git@github.com/.insteadOf https://github.com/
+RUN mkdir /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
+ENV GOPRIVATE github.com/m4rkdc/nebula_est/*
+RUN --mount=type=secret,id=sshKey,dst=/root/.ssh/id_ed25519 go build -o ./nest_config ./cmd/*
+
+#RUN go build -o ./nest_config ./cmd/*
 
 # Deployment phase
 FROM alpine:3.17

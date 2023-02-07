@@ -1,6 +1,0 @@
-FROM bitriseio/docker-android
-WORKDIR /home/nest_client
-COPY ./build/nest_client_android ./nest_client
-EXPOSE 4242/udp
-#ENTRYPOINT ["./nest_client"]
-CMD ["tail", "-f", "/dev/null"]

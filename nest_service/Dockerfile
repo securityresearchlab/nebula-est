@@ -3,7 +3,6 @@ FROM golang:1.20.0-alpine3.17 AS build
 WORKDIR /home/nest_build
 COPY go.mod go.sum ./
 RUN export GOPATH=/home/nest_build
-# RUN go mod download && go mod verify    
 ADD ./cmd ./cmd
 ADD ./pkg ./pkg
 RUN go build -o ./nest_service ./cmd/*

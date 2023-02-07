@@ -1,0 +1,43 @@
+.PHONY: nest_service nest_ca nest_config
+
+nest_service:
+	cd nest_service; docker build --rm \
+		-t nest_service \
+		. ; cd ..
+
+nest_ca:
+	cd nest_ca; docker build --rm \
+        -t nest_ca \
+        --secret id=sshKey,src=${HOME}/.ssh/github_ed25519 \
+        . ; cd ..
+
+nest_config:
+	cd nest_config; docker build --rm \
+        -t nest_config \
+        --secret id=sshKey,src=${HOME}/.ssh/github_ed25519 \
+        . ; cd .. 
+
+nest_client_lin_64:
+	cd nest_client; docker build --rm \
+        -t nest_client_lin_64 \
+        -f Dockerfile_lin_64 \
+		--secret id=sshKey,src=${HOME}/.ssh/github_ed25519 \
+		. ; cd ..
+
+nest_client_lin_386:
+	cd nest_client; docker build --rm \
+		-t nest_client_lin_386 \
+		-f Dockerfile_lin_386 \
+		--secret id=sshKey,src=${HOME}/.ssh/github_ed25519 \
+		. ; cd ..
+
+nest_client_lin_arm:
+	cd nest_client; docker build --rm \
+		-t nest_client_lin_arm \
+		-f Dockerfile_lin_arm \
+		--secret id=sshKey,src=${HOME}/.ssh/github_ed25519 \
+		. ; cd ..
+
+nest_clients: nest_client_lin_64 nest_client_lin_386 nest_client_lin_arm
+
+all: nest_service nest_ca nest_config nest_clients
