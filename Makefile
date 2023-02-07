@@ -1,3 +1,5 @@
+.PHONY: nest_service nest_ca nest_config
+
 nest_service:
 	cd nest_service; mkdir build; go build -o ./build cmd/*; env GOOS=linux GOARCH=arm go build -o ./build/nest_service_arm cmd/*
 
@@ -5,8 +7,7 @@ nest_ca:
 	cd nest_ca;	mkdir build; go build -o ./build cmd/*;	env GOOS=linux GOARCH=arm go build -o ./build/nest_ca_arm cmd/*
 
 nest_config:
-	cd nest_config;	mkdir build
-	go build -o ./build cmd/*; env GOOS=linux GOARCH=arm go build -o ./build/nest_config_arm cmd/*;
+	cd nest_config;	mkdir build; go build -o ./build cmd/*; env GOOS=linux GOARCH=arm go build -o ./build/nest_config_arm cmd/*;
 
 nest_client_lin_64:
 	cd nest_client;	mkdir build; env GOOS=linux GOARCH=amd64 go build -o ./build/nest_client_lin_64 cmd/*
