@@ -3,7 +3,7 @@ version: '3.9'
 services:
   nest_config:
     container_name: nest_config
-    image: nest_config
+    image: m4rkdc/nest_config:1.0.0
     restart: always
     volumes:
       - ./nest_config/:/home/nest_config/mnt
@@ -35,7 +35,7 @@ services:
   
   nest_ca:
     container_name: nest_ca
-    image: nest_ca
+    image: m4rkdc/nest_ca:1.0.0
     restart: always
     volumes:
       - ./nest_ca/:/home/nest_ca/mnt
@@ -72,7 +72,7 @@ services:
     
   nest_service:
     container_name: nest_service
-    image: nest_service
+    image: m4rkdc/nest_service:1.0.0
     restart: always
     volumes:
       - ./nest_service/:/home/nest_service/mnt

@@ -15,7 +15,7 @@ generate_configs_client(){
     echo -n "nest_client_lin_386" | openssl dgst -sha256 -hmac $(<./hmac.key) | sed "s/(stdin)= //"| tr -d "\n" > nest_client_lin_386.hmac
     #echo -n "nest_client_android" | openssl dgst -sha256 -hmac $(<./hmac.key) | sed "s/(stdin)= //"| tr -d "\n" > nest_client_android.hmac
     cd ../
-    cp ../examples/client/*.env .
+    cp ../examples/docker/client/*.env .
     echo "1" > done_gen_client
 }
 

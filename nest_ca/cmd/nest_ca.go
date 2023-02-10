@@ -56,7 +56,7 @@ func main() {
 	if _, err := os.Stat(utils.Certificates_path); err != nil {
 		fmt.Printf("%s doesn't exist. Creating the folder\n", utils.Certificates_path)
 		if err := os.Mkdir(utils.Certificates_path, 0700); err != nil {
-			fmt.Println("Couldn't create /ncsr directory")
+			fmt.Printf("Couldn't create certificates directory: %v\n", err)
 			os.Exit(1)
 		}
 	}

@@ -22,7 +22,7 @@ generate_configs(){
     cd ../nest_config
     mkdir log config dhall
     cd dhall/
-    cp -rf ../../../examples/client/gen/* .
+    cp -rf ../../../examples/docker/client/gen/* .
     mv nebula/nebula_conf.dhall ../../secrets/
     cd ../config
     mkdir nebula
@@ -49,8 +49,8 @@ generate_configs(){
 
     cd ../../
     rm nebula* *.crt *.key
-    cp ../examples/system/*.env .
-    cp ../examples/system/nest_service.yml ../examples/system/nest_ca.yml ../examples/system/nest_config.yml secrets/
+    cp ../examples/docker/system/*.env .
+    cp ../examples/docker/system/nest_service.yml ../examples/docker/system/nest_ca.yml ../examples/docker/system/nest_config.yml secrets/
     echo 1 > done_gen
 }
 

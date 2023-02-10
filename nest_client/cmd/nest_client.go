@@ -14,6 +14,7 @@ import (
 
 	nest_client "github.com/m4rkdc/nebula_est/nest_client/pkg/logic"
 	"github.com/m4rkdc/nebula_est/nest_service/pkg/models"
+	"github.com/m4rkdc/nebula_est/nest_service/pkg/utils"
 )
 
 func uninstall_nebula() {
@@ -180,6 +181,12 @@ func main() {
 		}
 		fmt.Println("NEST client: enrollment successfull. Writing conf files and keys to " + nest_client.Nebula_conf_folder)
 	} else {
+		neb_conf, err := os.ReadFile("nebula_conf.txt")
+		if err != nil {
+			fmt.Printf("Could not read nebula configuration location: %v\n", err)
+			os.Exit(12)
+		}
+		utils.Nebula_folder = string(neb_conf)
 		nest_client.Reenroll()
 	}
 

@@ -60,6 +60,7 @@ func setupTLSClient() *http.Client {
 				tls.TLS_AES_256_GCM_SHA384,
 				tls.TLS_CHACHA20_POLY1305_SHA256,
 				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			},
 			RootCAs: caCertPool},
 	}
@@ -282,6 +283,7 @@ func Enroll() error {
 			return err
 		}
 		Nebula_conf_folder = csr_response.NebulaPath
+		os.WriteFile("nebula_conf.txt", []byte(Nebula_conf_folder), 0666)
 		os.Mkdir(Nebula_conf_folder, 0700)
 		if err := os.Rename(Conf_folder+csr.Hostname+".key", Nebula_conf_folder+csr.Hostname+".key"); err != nil {
 			return err
@@ -355,6 +357,7 @@ func ServerKeygen() error {
 			return err
 		}
 		Nebula_conf_folder = csr_response.NebulaPath
+		os.WriteFile("nebula_conf.txt", []byte(Nebula_conf_folder), 0666)
 		os.Mkdir(Nebula_conf_folder, 0700)
 		key := cert.MarshalX25519PrivateKey(csr_response.NebulaPrivateKey)
 		os.WriteFile(Nebula_conf_folder+csr.Hostname+".key", key, 0600)

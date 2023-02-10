@@ -23,7 +23,7 @@ nest_client_lin_arm:
 
 nest_services: nesst_service nest_ca nest_config
 
-nest_clients: nest_client_lin_64 nest_client_lin_32 nest_client_lin_arm nest_client_windows
+nest_clients: nest_client_lin_64 nest_client_lin_32 nest_client_lin_arm nest_client_win
 
 all: nest_service nest_ca nest_config nest_clients
 

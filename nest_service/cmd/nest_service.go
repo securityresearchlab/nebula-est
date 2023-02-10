@@ -106,7 +106,7 @@ func setupTLS() *tls.Config {
 		MinVersion:               tls.VersionTLS12,
 		MaxVersion:               tls.VersionTLS13,
 		PreferServerCipherSuites: true,
-		CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
+		//CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
 		CipherSuites: []uint16{
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
@@ -167,27 +167,27 @@ func main() {
 
 	if _, err := os.Stat(utils.Ncsr_folder); err != nil {
 		if err := os.Mkdir(utils.Ncsr_folder, 0700); err != nil {
-			fmt.Printf("Couldn't create /ncsr directory")
+			fmt.Printf("Couldn't create /ncsr directory: %v\n", err)
 			os.Exit(4)
 		}
 	}
 
 	if _, err := os.Stat(utils.Nebula_folder + "nest_service.crt"); err != nil {
-		fmt.Printf("Cannot find NEST service Nebula certificate\n")
+		fmt.Printf("Cannot find NEST service Nebula certificate: %v\n", err)
 		os.Exit(5)
 	}
 	if _, err := os.Stat(utils.Nebula_folder + "nest_service.key"); err != nil {
-		fmt.Printf("Cannot find NEST service Nebula key\n")
+		fmt.Printf("Cannot find NEST service Nebula key: %v\n", err)
 		os.Exit(6)
 	}
 
 	if _, err := os.Stat(utils.Nebula_folder + "nest_system_ca.crt"); err != nil {
-		fmt.Printf("Cannot find NEST Nebula CA crt\n")
+		fmt.Printf("Cannot find NEST Nebula CA crt: %v\n", err)
 		os.Exit(7)
 	}
 
 	if _, err := os.Stat(utils.Nebula_folder + "config.yml"); err != nil {
-		fmt.Printf("Cannot find NEST Nebula config\n")
+		fmt.Printf("Cannot find NEST Nebula config: %v\n", err)
 		os.Exit(8)
 	}
 
@@ -245,6 +245,8 @@ func main() {
 			router.POST(r.Pattern, r.HandlerFunc)
 		}
 	}
+
+	fmt.Println(utils.Service_ip)
 
 	srv := http.Server{
 		Addr:      utils.Service_ip + ":" + utils.Service_port,

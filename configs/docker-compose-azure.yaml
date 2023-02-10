@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  nest_config:
+    container_name: nest-config
+    image: m4rkdc/nest_config:1.0.0
+    restart: always
+    volumes:
+      - nest-config:/home/nest_config/mnt
+    env_file:
+      - nest_config.env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+  
+  nest_ca:
+    container_name: nest-ca
+    image: m4rkdc/nest_ca:1.0.0
+    restart: always
+    volumes:
+      - nest-ca:/home/nest_ca/mnt
+    env_file:
+      - nest_ca.env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    depends_on:
+      - nest_config
+    
+  nest_service:
+    container_name: nest-service
+    image: m4rkdc/nest_service:1.0.0
+    restart: always
+    volumes:
+      - nest-service:/home/nest_service/mnt
+    env_file:
+      - nest_service.env
+    ports: 
+      - 8080:8080
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    depends_on:
+      - nest_ca
+      - nest_config
+
+volumes:
+  nest-service:
+    driver: azure_file
+    driver_opts:
+      share_name: nest-service
+      storage_account_name: neststorage12
+  nest-ca:
+    driver: azure_file
+    driver_opts:
+      share_name: nest-ca
+      storage_account_name: neststorage12
+  nest-config:
+    driver: azure_file
+    driver_opts:
+      share_name: nest-config
+      storage_account_name: neststorage12
