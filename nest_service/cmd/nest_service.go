@@ -246,8 +246,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(utils.Service_ip)
-
 	srv := http.Server{
 		Addr:      utils.Service_ip + ":" + utils.Service_port,
 		Handler:   router,

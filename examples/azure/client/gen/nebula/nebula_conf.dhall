@@ -55,7 +55,7 @@ let lin_connection
         (None Text)
 
 let outbound_connection
-    : nebula.Connection
+   : nebula.Connection
     = nebula.mkUnidirectionalConnection
         nebula.Port.AnyPort
         nebula.Proto.AnyProto

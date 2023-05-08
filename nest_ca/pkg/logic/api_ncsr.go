@@ -43,17 +43,26 @@ var Ca_routes = [3]models.Route{
 	},
 }
 
-func checkPublicKey(publicKey []byte) bool {
+func checkPublicKey(raw_csr *models.RawNebulaCsr) bool {
 	certificates, _ := os.ReadDir(utils.Certificates_path)
-	for _, f := range certificates {
-		if strings.HasSuffix(f.Name(), ".crt") {
-			b, _ := os.ReadFile(utils.Certificates_path + f.Name())
+	if len(raw_csr.PublicKey) != 0 {
+		for _, f := range certificates {
+			if strings.HasSuffix(f.Name(), ".crt") {
+				b, _ := os.ReadFile(utils.Certificates_path + f.Name())
 
-			nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
-			if reflect.DeepEqual(nc.Details.PublicKey, publicKey) {
-				return true
+				nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
+				if reflect.DeepEqual(nc.Details.PublicKey, raw_csr.PublicKey) {
+					return true
+				}
 			}
 		}
+	} else if !*raw_csr.Rekey {
+		b, _ := os.ReadFile(utils.Certificates_path + raw_csr.Hostname + ".crt")
+		nc, _, _ := cert.UnmarshalNebulaCertificateFromPEM(b)
+		raw_csr.PublicKey = nc.Details.PublicKey
+		return false
+	} else {
+		return true
 	}
 
 	return false
@@ -196,27 +205,9 @@ func CertificateSign(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no Nebula Certificate Signing Request provided"})
 		return
 	}
-	/* TODO: maybe replace with a Schnorr proof of knwoledge
-	var csr_ver = models.RawNebulaCsr{
-		ServerKeygen: &csr.ServerKeygen,
-		Rekey:        &csr.Rekey,
-		Hostname:     csr.Hostname,
-		PublicKey:    csr.PublicKey,
-	}
+	// TODO: maybe replace with a Schnorr proof of knwoledge
 
-	b, err := proto.Marshal(&csr_ver)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: "Internal server error: " + err.Error()})
-		return
-	}
-
-	if !ed25519.Verify(csr.PublicKey, b, csr.Pop) {
-		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Proof of Possession is not valid"})
-		return
-	}
-	*/
-	if invalidPublickey := checkPublicKey(raw_csr.PublicKey); invalidPublickey {
+	if invalidPublickey := checkPublicKey(&raw_csr); invalidPublickey {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: the provided public key is already used by an already enrolled host"})
 		return
 	}

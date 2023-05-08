@@ -318,8 +318,19 @@ It creates NCSR status file for this client and returns to the client the base u
 func NcsrApplication(c *gin.Context) {
 
 	var auth = models.NestAuth{}
-	if err := c.ShouldBindJSON(&auth); err != nil || len(auth.Hostname) == 0 {
+	if err := c.ShouldBindJSON(&auth); err != nil || len(auth.Hostname) == 0 || len(auth.Secret) == 0 {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: no client authorization provided"})
+		return
+	}
+
+	if ok, err := verify(auth.Hostname, auth.Secret); !ok {
+		if err != nil {
+			fmt.Println("Internal server Error: " + err.Error())
+			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Could not succesfully verify the provided secret"})
 		return
 	}
 
@@ -336,17 +347,6 @@ func NcsrApplication(c *gin.Context) {
 	}
 	if !isValid {
 		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad request: The hostname you provided was not found in the Configuration service list"})
-		return
-	}
-
-	if ok, err := verify(auth.Hostname, auth.Secret); !ok {
-		if err != nil {
-			fmt.Println("Internal server Error: " + err.Error())
-			c.JSON(http.StatusInternalServerError, models.ApiError{Code: 500, Message: err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusBadRequest, models.ApiError{Code: 400, Message: "Bad Request. Could not succesfully verify the provided secret"})
 		return
 	}
 
@@ -394,7 +394,7 @@ func NcsrStatus(c *gin.Context) {
 		return
 	}
 	if err := checkClientToken(client_token, hostname); err != nil {
-		c.JSON(http.StatusUnauthorized, err)
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
 
@@ -455,20 +455,21 @@ func Enroll(c *gin.Context) {
 		return
 	}
 
-	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
-		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/reenroll"})
-		return
-	}
-
 	client_token := c.Request.Header.Get("NESToken")
 	if len(strings.TrimSpace(client_token)) == 0 {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
 	if err := checkClientToken(client_token, hostname); err != nil {
-		c.JSON(http.StatusUnauthorized, err)
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
+
+	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
+		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/reenroll"})
+		return
+	}
+
 	var csr models.NebulaCsr
 
 	if err := c.ShouldBindJSON(&csr); err != nil {
@@ -518,18 +519,18 @@ func Reenroll(c *gin.Context) {
 		return
 	}
 
-	if isPending, _ := regexp.Match(string(models.PENDING), b); isPending {
-		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has not yet finished enrolling. If you want to do so, please visit https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/enroll"})
-		return
-	}
-
 	client_token := c.Request.Header.Get("NESToken")
 	if len(strings.TrimSpace(client_token)) == 0 {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
 	if err := checkClientToken(client_token, hostname); err != nil {
-		c.JSON(http.StatusUnauthorized, err)
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
+		return
+	}
+
+	if isPending, _ := regexp.Match(string(models.PENDING), b); isPending {
+		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has not yet finished enrolling. If you want to do so, please visit https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/enroll"})
 		return
 	}
 
@@ -580,18 +581,18 @@ func Serverkeygen(c *gin.Context) {
 		return
 	}
 
-	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
-		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https:https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/reenroll"})
-		return
-	}
-
 	client_token := c.Request.Header.Get("NESToken")
 	if len(strings.TrimSpace(client_token)) == 0 {
 		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
 		return
 	}
 	if err := checkClientToken(client_token, hostname); err != nil {
-		c.JSON(http.StatusUnauthorized, err)
+		c.JSON(http.StatusUnauthorized, models.ApiError{Code: 401, Message: "Unhautorized: please provide a valid token before accessing this endpoint"})
+		return
+	}
+
+	if isPending, _ := regexp.Match(string(models.PENDING), b); !isPending {
+		c.JSON(http.StatusConflict, models.ApiError{Code: 409, Message: "Conflict. This hostname has already enrolled. If you want to re-enroll, please visit https:https://" + utils.Service_ip + ":" + utils.Service_port + "/ncsr/" + hostname + "/reenroll"})
 		return
 	}
 
